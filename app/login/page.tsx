@@ -9,7 +9,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('')
     const router = useRouter()
 
-    //ログイン処理
+    //メールログイン処理
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
 
@@ -23,6 +23,21 @@ export default function LoginPage() {
         } else {
             alert('ログイン成功')
             router.push('/')
+        }
+    }
+
+    //GoogleOAuthログイン処理
+    const handleGoogleLogin = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                //認証後に戻ってくるURLを指定
+                redirectTo: `${window.location.origin}/auth/callback`,
+            },
+        })
+
+        if (error) {
+            alert('googleログインエラー: ' + error.message)
         }
     }
 
@@ -56,6 +71,13 @@ export default function LoginPage() {
                 <button type="submit">ログイン</button>
 
             </form>
+
+            {/* 区切り線 */}
+            <div style={{ margin: '20px 0', textAlign: 'center', borderBottom: '1px solid #ccc', lineHeight: '0.1em' }}>
+                <span style={{ background: '#fff', padding: '0 10px', color: '#666' }}>または</span>
+            </div>
+
+            <button onClick={handleGoogleLogin}>Googleでログイン</button>
         </div>
     )
 }
