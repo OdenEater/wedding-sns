@@ -107,3 +107,10 @@ npm run deploy # Vercelにデプロイ
 - **Phase 4 (拡張機能)**: 0% 実装予定 ⏳
 
 詳細は [ROADMAP.md](ROADMAP.md) を参照してください。
+
+## 🔀 Git ブランチ運用
+
+- **main**: 本番環境（Vercel自動デプロイ）
+- **develop**: 開発環境（直接コミット可）
+
+詳細は [GIT_WORKFLOW.md](GIT_WORKFLOW.md) を参照してください。

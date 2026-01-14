@@ -124,3 +124,30 @@ wedding-sns/
 3. ギャラリー表示
 4. 返信機能
 5. プロフィールページ
+
+## 11. Git ブランチ運用
+
+このプロジェクトでは `main` と `develop` の2ブランチで運用しています。
+
+### 開発時の基本フロー
+
+```bash
+# developブランチで開発
+git checkout develop
+git pull origin develop
+
+# コードを編集後、ローカルで確認
+npm run dev
+
+# 問題なければコミット
+git add .
+git commit -m "feat: 機能の説明"
+git push origin develop
+
+# 動作確認完了後、mainにマージ
+git checkout main
+git merge develop
+git push origin main
+```
+
+詳細は [GIT_WORKFLOW.md](GIT_WORKFLOW.md) を参照してください。
