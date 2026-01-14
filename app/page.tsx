@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Heart, MessageCircle, LogOut, Send, Image as ImageIcon, Home, Menu, X } from 'lucide-react'
+import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 // 投稿の型定義
@@ -21,7 +21,6 @@ type Post = {
 }
 
 export default function TimelinePage() {
-  const [content, setContent] = useState('')
   const [activeTab, setActiveTab] = useState<'timeline' | 'gallery'>('timeline')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null)
@@ -33,12 +32,6 @@ export default function TimelinePage() {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        router.push('/login')
-        return
-      }
-      
       setUser(user)
       setLoading(false)
     }
@@ -47,20 +40,14 @@ export default function TimelinePage() {
 
     // 認証状態の変更を監視
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) {
-        router.push('/login')
-      } else {
-        setUser(session.user)
-      }
+      setUser(session?.user || null)
     })
 
     return () => subscription.unsubscribe()
-  }, [router])
+  }, [])
 
   // 投稿一覧の取得
   const fetchPosts = async () => {
-    if (!user) return
-
     const { data, error } = await supabase
       .from('posts_with_counts')
       .select('*')
@@ -77,7 +64,7 @@ export default function TimelinePage() {
 
   useEffect(() => {
     fetchPosts()
-  }, [user])
+  }, [])
 
   // ログアウト処理
   const handleLogout = async () => {
@@ -85,37 +72,52 @@ export default function TimelinePage() {
     router.push('/login')
   }
 
-  // 投稿処理
-  const handlePost = async () => {
-    if (!content.trim() || content.length > 140 || !user) return
+  // いいね処理
+  const handleLike = async (postId: string | null, isLiked: boolean | null) => {
+    if (!postId || !user) return
 
     try {
-      setLoading(true)
+      if (isLiked) {
+        // いいね削除
+        const { error } = await supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id)
 
-      // Supabaseに投稿を保存
-      const { error } = await supabase
-        .from('posts')
-        .insert([
-          {
-            content: content.trim(),
-            user_id: user.id
+        if (error) throw error
+      } else {
+        // いいね追加
+        const { error } = await supabase
+          .from('likes')
+          .insert([
+            {
+              post_id: postId,
+              user_id: user.id
+            }
+          ])
+
+        if (error) throw error
+      }
+
+      // 楽観的UI更新: すぐに画面を更新
+      setPosts(posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            is_liked_by_me: !isLiked,
+            likes_count: isLiked 
+              ? (post.likes_count || 0) - 1 
+              : (post.likes_count || 0) + 1
           }
-        ])
+        }
+        return post
+      }))
 
-      if (error) throw error
-
-      // 投稿成功：フォームをリセット
-      setContent('')
-      alert('投稿しました！')
-      
-      // 投稿一覧を再取得
-      await fetchPosts()
-      
     } catch (error) {
-      console.error('投稿エラー:', error)
-      alert('投稿に失敗しました。もう一度お試しください。')
-    } finally {
-      setLoading(false)
+      console.error('いいねエラー:', error)
+      // エラー時は元に戻す
+      await fetchPosts()
     }
   }
 
@@ -223,42 +225,6 @@ export default function TimelinePage() {
           
           {activeTab === 'timeline' ? (
             <div className="space-y-6">
-              {/* 投稿フォーム */}
-              <Card className="border-none shadow-md overflow-hidden">
-                <CardContent className="pt-6">
-                  <div className="flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl overflow-hidden">
-                      {user?.user_metadata?.avatar_url ? (
-                        <img src={user.user_metadata.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        <span>{user?.email?.[0].toUpperCase() || '👤'}</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <textarea
-                        className="w-full min-h-[100px] resize-none border-none focus:ring-0 text-base placeholder:text-gray-400 bg-transparent outline-none"
-                        placeholder="幸せな瞬間をシェアしよう..."
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="bg-secondary/50 flex justify-between items-center py-3 px-6">
-                  <span className={`text-xs ${content.length > 140 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
-                    {content.length} / 140
-                  </span>
-                  <Button 
-                    disabled={content.length === 0 || content.length > 140 || loading} 
-                    className="rounded-full px-6"
-                    onClick={handlePost}
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    投稿する
-                  </Button>
-                </CardFooter>
-              </Card>
-
               {/* タイムライン */}
               <div className="space-y-4">
                 {posts.length === 0 ? (
@@ -297,7 +263,7 @@ export default function TimelinePage() {
                       </CardContent>
 
                       <CardFooter className="pl-[4.5rem] pt-2 pb-4 flex gap-6">
-                        <button className={`flex items-center gap-1.5 text-sm transition-colors ${post.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}>
+                        <button className={`flex items-center gap-1.5 text-sm transition-colors ${post.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`} onClick={() => handleLike(post.id, post.is_liked_by_me)}>
                           <Heart className={`w-5 h-5 ${post.is_liked_by_me ? 'fill-pink-500' : ''}`} />
                           <span>{post.likes_count || 0}</span>
                         </button>
@@ -325,6 +291,17 @@ export default function TimelinePage() {
 
         </main>
       </div>
+
+      {/* フローティング新規投稿ボタン (認証済みユーザーのみ表示) */}
+      {user && (
+        <Button
+          onClick={() => router.push('/post/new')}
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50"
+          size="icon"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      )}
     </div>
   )
 }

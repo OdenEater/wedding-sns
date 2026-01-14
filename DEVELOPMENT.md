@@ -59,7 +59,68 @@ npm run dev
 - **Lintチェック**: `npm run lint`
 - **型定義の生成**: `npx supabase gen types typescript --project-id <your-project-id> > types/supabase.ts` (要ログイン: `npx supabase login`)
 
-## 7.本番環境
+## 7. 本番環境
 
-- **vercel**: `https://wedding-rj81pnzn4-odeneaters-projects.vercel.app/login`
-- **statusチェックコマンド**: `npx vercel list`
+- **Vercel**: `https://wedding-sns.vercel.app`
+- **Statusチェックコマンド**: `npx vercel list`
+- **ビルドコマンド**: `npm run build`
+- **デプロイ**: Gitにプッシュすると自動デプロイ
+
+## 8. プロジェクト構成
+
+```
+wedding-sns/
+├── app/
+│   ├── page.tsx              # タイムライン画面（ホーム）
+│   ├── layout.tsx            # ルートレイアウト
+│   ├── globals.css           # グローバルスタイル
+│   ├── login/
+│   │   └── page.tsx          # ログインページ
+│   ├── post/
+│   │   └── new/
+│   │       └── page.tsx      # 新規投稿ページ
+│   └── auth/
+│       └── callback/
+│           └── route.ts      # OAuth認証コールバック
+├── components/
+│   └── ui/                   # 再利用可能UIコンポーネント
+│       ├── button.tsx
+│       ├── card.tsx
+│       └── input.tsx
+├── utils/
+│   └── supabase/
+│       └── client.ts         # Supabaseクライアント
+├── types/
+│   └── supabase.ts           # Supabase型定義
+└── public/
+    └── images/               # 静的画像ファイル
+```
+
+## 9. 実装済み機能
+
+### 認証
+- ✅ Google OAuth ログイン
+- ✅ ゲストログイン（メール/パスワード）
+- ✅ ログアウト
+- ✅ 未認証でもタイムライン閲覧可能
+
+### 投稿機能
+- ✅ 新規投稿（140文字制限）
+- ✅ 投稿一覧表示（最新50件）
+- ✅ いいね機能（トグル、楽観的UI更新）
+- ✅ フローティング新規投稿ボタン（認証済みのみ）
+
+### UI/UX
+- ✅ レスポンシブデザイン（PC/スマホ対応）
+- ✅ ダークモード非対応（明るいテーマのみ）
+- ✅ ローディング状態表示
+
+## 10. 次の実装予定
+
+詳細は [ROADMAP.md](ROADMAP.md) を参照してください。
+
+1. リアルタイム更新（Supabase Realtime）
+2. 画像投稿機能
+3. ギャラリー表示
+4. 返信機能
+5. プロフィールページ

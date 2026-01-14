@@ -204,8 +204,16 @@ Wedding SNS
 
 ## 7. 画面遷移図
 
-[Login] → (成功) → [Timeline]
-[Timeline] → [Post作成]
+```
+[Login] → (成功) → [Timeline (ホーム)]
+[Timeline] → [フローティング+ボタン] → [Post作成 (/post/new)] → (投稿成功) → [Timeline]
+[Timeline] → [ギャラリータブ] → (実装予定)
+```
+
+**認証ルール:**
+- `/login`: 未認証のみ
+- `/`: 全員閲覧可能（投稿・いいねは認証必須）
+- `/post/new`: 認証必須（未認証は `/login` にリダイレクト）
 
 
 
@@ -222,9 +230,12 @@ wedding-sns/
 │   ├── auth/
 │   │   └── callback/
 │   │       └── route.ts   # 認証コールバック
-│   └── login/
-│       ├── page.tsx       # ログインページ
-│       └── content.json   # ログインページコンテンツ
+│   ├── login/
+│   │   ├── page.tsx       # ログインページ
+│   │   └── content.json   # ログインページコンテンツ
+│   └── post/
+│       └── new/
+│           └── page.tsx   # 新規投稿ページ
 ├── components/            # 再利用可能なコンポーネント
 │   └── ui/
 │       ├── button.tsx
