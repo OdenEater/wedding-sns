@@ -64,6 +64,51 @@ export default function TimelinePage() {
 
   useEffect(() => {
     fetchPosts()
+
+    // リアルタイム更新の購読
+    const channel = supabase
+      .channel('timeline-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'posts'
+        },
+        async () => {
+          // 新規投稿があったら再取得
+          await fetchPosts()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'posts'
+        },
+        async () => {
+          // 投稿が削除されたら再取得
+          await fetchPosts()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes'
+        },
+        async () => {
+          // いいねの変更があったら再取得
+          await fetchPosts()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // ログアウト処理
