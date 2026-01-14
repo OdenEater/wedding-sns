@@ -2,7 +2,7 @@ import React from "react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'outline' | 'ghost'
-    size?: 'sm' | 'md' | 'lg'
+    size?: 'sm' | 'md' | 'lg' | 'icon'
     fullWidth?: boolean
 }
 
@@ -15,7 +15,7 @@ export function Button({
     ...props
 }: ButtonProps) {
     //ベースとなるスタイル
-    const baseStyles = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2"
+    const baseStyles = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
 
     //　バリエーションごとのスタイル
     const variants = {
@@ -26,14 +26,15 @@ export function Button({
 
     const sizes = {
         sm: "h-8 px-3 text-xs",
-        md: "h-10 px-4 text-sm",
-        lg: "h-12 px-8 text-base"
+        md: "h-10 px-4 py-2",
+        lg: "h-12 px-8 text-base",
+        icon: "h-10 w-10"
     }
 
     const widthStyle = fullWidth ? "w-full" : ""
 
     return (
-        <button className={`${baseStyles} ${variants[variant]} ${widthStyle} ${className}`}
+        <button className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${widthStyle} ${className}`}
             {...props}>
             {children}
         </button>

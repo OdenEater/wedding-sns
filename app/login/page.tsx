@@ -2,127 +2,80 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '../../utils/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Mail, Lock, Heart } from 'lucide-react'
+import { User } from 'lucide-react'
+import content from './content.json'
 
 export default function LoginPage() {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false) //Loading
+    const [loading, setLoading] = useState(false)
     const router = useRouter()
 
-    //メールログイン処理
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
-
-        if (error) {
-            alert('ログイン失敗' + error.message)
-            setLoading(false)
-        } else {
-            router.push('/')
-        }
-    }
-
-    //GoogleOAuthログイン処理
+    // GoogleOAuthログイン処理
     const handleGoogleLogin = async () => {
         setLoading(true)
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                //認証後に戻ってくるURLを指定
                 redirectTo: `${window.location.origin}/auth/callback`,
             },
         })
 
         if (error) {
-            alert('googleログインエラー: ' + error.message)
+            console.error(error)
             setLoading(false)
         }
     }
 
+    // ゲストログイン処理
+    const handleGuestLogin = () => {
+        router.push('/')
+    }
+
     return (
-        // 画面全体を中央寄せにするコンテナ
-        <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4">
+        <div className="min-h-screen w-full overflow-hidden relative bg-gray-900 text-white">
+            {/* 背景画像 */}
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/images/honeymoon/welcome.jpg"
+                    alt="Welcome Background"
+                    fill
+                    className="object-cover opacity-90"
+                    priority
+                />
+            </div>
 
-            <Card className="w-full max-w-md border-none shadow-lg">
-                <CardHeader className="text-center space-y-2">
-                    {/* ロゴ代わりのアイコン */}
-                    <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit">
-                        <Heart className="w-8 h-8 text-primary fill-primary" />
-                    </div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                        M・O家結婚式へようこそ
-                    </h1>
-                    <p className="text-sm text-gray-500">
-                        思い出を共有して、素敵な結婚式を作りましょう
+            {/* O案のように上下だけ読みやすくするグラデーション（中央はクリア） */}
+            <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-b from-black/60 via-black/0 to-black/80" />
+
+            {/* コンテンツ */}
+            <div className="relative z-20 h-screen flex flex-col justify-between p-8 md:p-16">
+                {/* 上部：タイトル群 */}
+                <div className="w-full text-center pt-8 md:pt-12 space-y-3">
+                    <p className="text-xs md:text-sm tracking-[0.3em] uppercase opacity-80">
+                        {content.welcomeLabel}
                     </p>
-                </CardHeader>
+                    <p className="text-sm md:text-base tracking-[0.2em] opacity-90">
+                        {content.title}
+                    </p>
+                    <div className="w-px h-16 bg-white/30 mx-auto my-6" />
+                </div>
 
-                <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                メールアドレス
-                            </label>
-                            <Input
-                                type="email"
-                                placeholder="name@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                icon={<Mail className="w-4 h-4" />}
-                            />
-                        </div>
+                {/* 中央：スペーサー（被写体の中心を空ける） */}
+                <div className="flex-grow" />
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none">
-                                パスワード
-                            </label>
-                            <Input
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                icon={<Lock className="w-4 h-4" />}
-                            />
-                        </div>
-
-                        <Button type="submit" fullWidth disabled={loading}>
-                            {loading ? 'ログイン中...' : 'メールアドレスでログイン'}
-                        </Button>
-                    </form>
-
-                    {/* 区切り線 */}
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-white px-2 text-gray-500">
-                                または
-                            </span>
-                        </div>
-                    </div>
-
+                {/* 下部：ログイン */}
+                <div className="w-full max-w-sm mx-auto pb-8 md:pb-12 space-y-4">
                     <Button
-                        variant="outline"
+                        variant="ghost"
+                        size="lg"
                         fullWidth
                         onClick={handleGoogleLogin}
                         disabled={loading}
-                        className="gap-2"
+                        className="h-14 rounded-lg bg-white/10 text-white border border-white/30 backdrop-blur-md hover:bg-white/90 hover:text-black"
                     >
-                        {/* Googleのロゴ（SVG） */}
-                        <svg className="w-4 h-4" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                             <path
                                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                                 fill="#4285F4"
@@ -140,16 +93,21 @@ export default function LoginPage() {
                                 fill="#EA4335"
                             />
                         </svg>
-                        Googleでログイン
+                        {content.googleLoginLabel}
                     </Button>
-                </CardContent>
 
-                <CardFooter className="justify-center">
-                    <p className="text-xs text-gray-500">
-                        アカウントをお持ちでないですか？ <a href="#" className="text-primary hover:underline">新規登録</a>
-                    </p>
-                </CardFooter>
-            </Card>
+                    <Button
+                        variant="ghost"
+                        size="lg"
+                        fullWidth
+                        onClick={handleGuestLogin}
+                        className="h-12 rounded-lg text-white/80 hover:text-white hover:bg-white/10"
+                    >
+                        <User className="w-5 h-5 mr-2" />
+                        {content.guestLoginLabel}
+                    </Button>
+                </div>
+            </div>
         </div>
     )
 }
