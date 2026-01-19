@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,8 @@ type Post = {
   avatar_url: string | null
 }
 
-export default function NewPostPage() {
+// useSearchParams() を使用するコンポーネントを分離
+function NewPostContent() {
   const [content, setContent] = useState('')
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -244,5 +245,20 @@ export default function NewPostPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+// Suspenseでラップしたメインコンポーネント
+export default function NewPostPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <NewPostContent />
+    </Suspense>
   )
 }
