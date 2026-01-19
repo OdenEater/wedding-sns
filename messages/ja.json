@@ -47,6 +47,8 @@
     "postButton": "投稿する",
     "replyButton": "返信する",
     "hint": "💡 140文字以内で投稿できます\n画像はギャラリーから投稿してください！",
+    "postSuccess": "投稿しました",
+    "replySuccess": "返信しました",
     "postError": "投稿に失敗しました。もう一度お試しください。"
   },
   "profile": {
@@ -61,6 +63,17 @@
     "cancelEdit": "キャンセル",
     "updateSuccess": "プロフィールを更新しました",
     "updateError": "プロフィールの更新に失敗しました"
+  },
+  "postDetail": {
+    "title": "投稿詳細",
+    "notFound": "投稿が見つかりませんでした",
+    "notFoundHint": "この投稿は削除されたか、存在しない可能性があります",
+    "noReplies": "まだ返信がありません",
+    "noRepliesHint": "最初の返信をしてみましょう！",
+    "copyLink": "SHARE",
+    "linkCopied": "リンクをコピーしました",
+    "replies": "返信",
+    "backToTimeline": "タイムラインに戻る"
   },
   "gallery": {
     "title": "ギャラリー"

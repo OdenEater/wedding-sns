@@ -40,8 +40,7 @@ export default function ProfilePage() {
   const [editUsername, setEditUsername] = useState('')
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [stats, setStats] = useState({
-    postsCount: 0,
-    likesCount: 0
+    postsCount: 0
   })
 
   useEffect(() => {
@@ -86,16 +85,9 @@ export default function ProfilePage() {
 
         // 統計情報の計算
         const postsCount = postsData.length
-        
-        // いいね総数の取得
-        const { count: likesCount } = await supabase
-          .from('likes')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
 
         setStats({
-          postsCount,
-          likesCount: likesCount || 0
+          postsCount
         })
 
       } catch (error) {
@@ -248,10 +240,6 @@ export default function ProfilePage() {
                       <div>
                         <span className="font-bold">{stats.postsCount}</span>
                         <span className="text-gray-600 ml-1">{msg.profile.posts}</span>
-                      </div>
-                      <div>
-                        <span className="font-bold">{stats.likesCount}</span>
-                        <span className="text-gray-600 ml-1">{msg.profile.likes}</span>
                       </div>
                     </div>
                     <p className="text-sm text-gray-500 mt-3">

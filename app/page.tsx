@@ -558,7 +558,10 @@ export default function TimelinePage() {
                             </div>
                           </div>
                         ) : (
-                          <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90">
+                          <p 
+                            className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90 cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors"
+                            onClick={() => router.push(`/post/${post.id}`)}
+                          >
                             {post.content}
                           </p>
                         )}

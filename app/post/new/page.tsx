@@ -119,8 +119,14 @@ function NewPostContent() {
 
       if (error) throw error
 
-      // 投稿成功：タイムラインに戻る
-      router.push('/')
+      // 投稿成功：トーストを表示してからタイムラインに戻る
+      const successMessage = replyToId ? msg.newPost.replySuccess : msg.newPost.postSuccess
+      setToast({ message: successMessage, type: 'success' })
+      
+      // トーストを表示してから画面遷移
+      setTimeout(() => {
+        router.push('/')
+      }, 1500)
       
     } catch (error) {
       console.error('投稿エラー:', error)
