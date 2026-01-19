@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Toast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
+import { useMessages, formatMessage } from '@/hooks/useMessages'
 
 // 投稿の型定義
 type Post = {
@@ -32,7 +35,10 @@ export default function TimelinePage() {
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set())
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const router = useRouter()
+  const msg = useMessages()
 
   // 認証状態の確認
   useEffect(() => {
@@ -261,34 +267,43 @@ export default function TimelinePage() {
   const handleDeletePost = async (postId: string | null) => {
     if (!postId || !user) return
     
-    const confirmed = confirm('この投稿を削除しますか?')
-    if (!confirmed) return
+    // 確認ダイアログを表示
+    setConfirmDelete(postId)
+  }
+
+  // 投稿削除実行
+  const executeDelete = async () => {
+    if (!confirmDelete || !user) return
 
     try {
       const { error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', postId)
+        .eq('id', confirmDelete)
         .eq('user_id', user.id) // RLSで二重チェック
 
       if (error) throw error
 
       // 楽観的UI更新
-      setPosts(posts.filter(post => post.id !== postId))
+      setPosts(posts.filter(post => post.id !== confirmDelete))
       
       // 返信として削除した場合、返信リストも更新
       setReplies(prev => {
         const newReplies = { ...prev }
         Object.keys(newReplies).forEach(key => {
-          newReplies[key] = newReplies[key].filter(reply => reply.id !== postId)
+          newReplies[key] = newReplies[key].filter(reply => reply.id !== confirmDelete)
         })
         return newReplies
       })
 
+      setToast({ message: msg.post.deleteSuccess, type: "success" })
+
     } catch (error) {
       console.error('削除エラー:', error)
-      alert('投稿の削除に失敗しました')
+      setToast({ message: msg.post.deleteError, type: "error" })
       await fetchPosts()
+    } finally {
+      setConfirmDelete(null)
     }
   }
 
@@ -336,10 +351,11 @@ export default function TimelinePage() {
 
       setEditingPostId(null)
       setEditContent('')
+      setToast({ message: msg.post.updateSuccess, type: "success" })
 
     } catch (error) {
       console.error('更新エラー:', error)
-      alert('投稿の更新に失敗しました')
+      setToast({ message: msg.post.updateError, type: "error" })
       await fetchPosts()
     }
   }
@@ -350,7 +366,7 @@ export default function TimelinePage() {
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
         <div className="text-center">
           <Heart className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
-          <p className="text-gray-600">読み込み中...</p>
+          <p className="text-gray-600">{msg.common.loading}</p>
         </div>
       </div>
     )
@@ -383,7 +399,7 @@ export default function TimelinePage() {
             </Button>
             <h1 className="text-xl font-bold text-primary flex items-center gap-2">
               <Heart className="w-6 h-6 fill-primary" />
-              Wedding SNS
+              {msg.common.appName}
             </h1>
           </div>
           <Button variant="ghost" size="sm" onClick={handleLogout}>
@@ -400,14 +416,14 @@ export default function TimelinePage() {
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'timeline' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <Home className="w-5 h-5" />
-                <span className="font-medium">タイムライン</span>
+                <span className="font-medium">{msg.navigation.timeline}</span>
               </button>
               <button 
                 onClick={() => { setActiveTab('gallery'); setIsMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'gallery' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <ImageIcon className="w-5 h-5" />
-                <span className="font-medium">ギャラリー</span>
+                <span className="font-medium">{msg.navigation.gallery}</span>
               </button>
             </nav>
           </div>
@@ -421,13 +437,13 @@ export default function TimelinePage() {
           <div className="mb-8 px-4">
             <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
               <Heart className="w-8 h-8 fill-primary" />
-              Wedding SNS
+              {msg.common.appName}
             </h1>
           </div>
 
           <nav className="flex-1 space-y-2">
-            <NavItem id="timeline" icon={Home} label="タイムライン" />
-            <NavItem id="gallery" icon={ImageIcon} label="ギャラリー" />
+            <NavItem id="timeline" icon={Home} label={msg.navigation.timeline} />
+            <NavItem id="gallery" icon={ImageIcon} label={msg.navigation.gallery} />
           </nav>
 
           <div className="px-4 mt-auto">
@@ -438,7 +454,7 @@ export default function TimelinePage() {
               onClick={handleLogout}
             >
               <LogOut className="w-6 h-6" />
-              <span className="text-lg">ログアウト</span>
+              <span className="text-lg">{msg.navigation.logout}</span>
             </Button>
           </div>
         </aside>
@@ -452,8 +468,8 @@ export default function TimelinePage() {
               <div className="space-y-4">
                 {posts.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
-                    <p>まだ投稿がありません</p>
-                    <p className="text-sm mt-2">最初の投稿をしてみましょう！</p>
+                    <p>{msg.timeline.noPosts}</p>
+                    <p className="text-sm mt-2">{msg.timeline.noPostsHint}</p>
                   </div>
                 ) : (
                   posts.map((post) => (
@@ -469,10 +485,12 @@ export default function TimelinePage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <div className="flex flex-col">
-                              <p className="text-sm font-bold text-foreground truncate">
-                                {post.username || 'ゲスト'}
-                              </p>
-                              <p className="text-sm text-gray-500">@{post.user_id?.slice(0, 8)}</p>
+                              <button
+                                onClick={() => router.push(`/profile/${post.user_id}`)}
+                                className="text-sm font-bold text-foreground truncate hover:underline text-left"
+                              >
+                                {post.username || msg.common.guest}
+                              </button>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400">
@@ -516,7 +534,7 @@ export default function TimelinePage() {
                             />
                             <div className="flex items-center justify-between">
                               <span className={`text-sm ${editContent.length > 140 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
-                                {editContent.length} / 140
+                                {formatMessage(msg.post.characterCount, { current: editContent.length.toString(), max: '140' })}
                               </span>
                               <div className="flex gap-2">
                                 <Button
@@ -526,7 +544,7 @@ export default function TimelinePage() {
                                   className="text-gray-500"
                                 >
                                   <XCircle className="w-4 h-4 mr-1" />
-                                  キャンセル
+                                  {msg.post.cancel}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -534,7 +552,7 @@ export default function TimelinePage() {
                                   disabled={!editContent.trim() || editContent.length > 140}
                                 >
                                   <Check className="w-4 h-4 mr-1" />
-                                  保存
+                                  {msg.post.save}
                                 </Button>
                               </div>
                             </div>
@@ -562,7 +580,7 @@ export default function TimelinePage() {
                               onClick={() => router.push(`/post/new?replyTo=${post.id}`)}
                             >
                               <MessageCircle className="w-5 h-5" />
-                              <span>返信</span>
+                              <span>{msg.timeline.reply}</span>
                             </button>
                           )}
 
@@ -572,7 +590,9 @@ export default function TimelinePage() {
                               onClick={() => post.id && toggleReplies(post.id)}
                             >
                               <span className="text-xs">
-                                {expandedPosts.has(post.id || '') ? '返信を非表示' : `返信を表示 (${post.replies_count})`}
+                                {expandedPosts.has(post.id || '') 
+                                  ? msg.timeline.hideReplies 
+                                  : formatMessage(msg.timeline.showReplies, { count: (post.replies_count ?? 0).toString() })}
                               </span>
                             </button>
                           )}
@@ -592,7 +612,12 @@ export default function TimelinePage() {
                                 </div>
                                 <div className="flex-1 bg-gray-50 rounded-lg p-3">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-bold">{reply.username || 'ゲスト'}</span>
+                                    <button
+                                      onClick={() => router.push(`/profile/${reply.user_id}`)}
+                                      className="text-sm font-bold hover:underline"
+                                    >
+                                      {reply.username || msg.common.guest}
+                                    </button>
                                     <span className="text-xs text-gray-400">
                                       {reply.created_at ? new Date(reply.created_at).toLocaleString('ja-JP') : ''}
                                     </span>
@@ -629,7 +654,7 @@ export default function TimelinePage() {
                                       />
                                       <div className="flex items-center justify-between">
                                         <span className={`text-xs ${editContent.length > 140 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
-                                          {editContent.length} / 140
+                                          {formatMessage(msg.post.characterCount, { current: editContent.length.toString(), max: '140' })}
                                         </span>
                                         <div className="flex gap-1">
                                           <Button
@@ -639,7 +664,7 @@ export default function TimelinePage() {
                                             className="text-gray-500 h-7 text-xs"
                                           >
                                             <XCircle className="w-3 h-3 mr-1" />
-                                            キャンセル
+                                            {msg.post.cancel}
                                           </Button>
                                           <Button
                                             size="sm"
@@ -648,7 +673,7 @@ export default function TimelinePage() {
                                             className="h-7 text-xs"
                                           >
                                             <Check className="w-3 h-3 mr-1" />
-                                            保存
+                                            {msg.post.save}
                                           </Button>
                                         </div>
                                       </div>
@@ -701,6 +726,28 @@ export default function TimelinePage() {
         >
           <Plus className="w-6 h-6" />
         </Button>
+      )}
+
+      {/* Toast通知 */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* 削除確認ダイアログ */}
+      {confirmDelete && (
+        <ConfirmDialog
+          title={msg.post.deleteConfirmTitle}
+          message={msg.post.deleteConfirmMessage}
+          confirmText={msg.post.deleteConfirmButton}
+          cancelText={msg.post.cancelButton}
+          onConfirm={executeDelete}
+          onCancel={() => setConfirmDelete(null)}
+          variant="danger"
+        />
       )}
     </div>
   )

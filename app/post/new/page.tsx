@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Toast } from '@/components/ui/toast'
 import { ArrowLeft, Send, Image as ImageIcon, MessageCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
+import { useMessages, formatMessage } from '@/hooks/useMessages'
 
 // 投稿の型定義
 type Post = {
@@ -24,9 +26,11 @@ function NewPostContent() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [parentPost, setParentPost] = useState<Post | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const replyToId = searchParams.get('replyTo')
+  const msg = useMessages()
 
   // 返信元投稿の取得
   useEffect(() => {
@@ -120,7 +124,7 @@ function NewPostContent() {
       
     } catch (error) {
       console.error('投稿エラー:', error)
-      alert('投稿に失敗しました。もう一度お試しください。')
+      setToast({ message: msg.newPost.postError, type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -131,7 +135,7 @@ function NewPostContent() {
     return (
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">読み込み中...</p>
+          <p className="text-gray-600">{msg.common.loading}</p>
         </div>
       </div>
     )
@@ -152,7 +156,7 @@ function NewPostContent() {
               <ArrowLeft className="w-6 h-6" />
             </Button>
             <h1 className="text-xl font-bold text-foreground">
-              {replyToId ? '返信' : '新規投稿'}
+              {replyToId ? msg.newPost.replyTitle : msg.newPost.title}
             </h1>
           </div>
           <Button 
@@ -161,7 +165,7 @@ function NewPostContent() {
             onClick={handlePost}
           >
             <Send className="w-4 h-4 mr-2" />
-            {replyToId ? '返信する' : '投稿する'}
+            {replyToId ? msg.newPost.replyButton : msg.newPost.postButton}
           </Button>
         </div>
       </header>
@@ -174,7 +178,7 @@ function NewPostContent() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <MessageCircle className="w-4 h-4" />
-                <span>返信先</span>
+                <span>{msg.newPost.replyTo}</span>
               </div>
             </CardHeader>
             <CardContent className="pt-2">
@@ -217,7 +221,7 @@ function NewPostContent() {
               <div className="flex-1">
                 <textarea
                   className="w-full min-h-[300px] resize-none border-none focus:ring-0 text-lg placeholder:text-gray-400 bg-transparent outline-none"
-                  placeholder="幸せな瞬間をシェアしよう..."
+                  placeholder={msg.newPost.placeholder}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   autoFocus
@@ -232,7 +236,7 @@ function NewPostContent() {
               </Button>
             </div>
             <span className={`text-sm ${content.length > 140 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
-              {content.length} / 140
+              {formatMessage(msg.post.characterCount, { current: content.length.toString(), max: '140' })}
             </span>
           </CardFooter>
         </Card>
@@ -240,21 +244,32 @@ function NewPostContent() {
         {/* ヒント */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
           <p className="text-sm text-blue-800">
-            💡 140文字以内で投稿できます。幸せな瞬間をみんなとシェアしましょう！
+            {msg.newPost.hint}
           </p>
         </div>
       </main>
+
+      {/* Toast通知 */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   )
 }
 
 // Suspenseでラップしたメインコンポーネント
 export default function NewPostPage() {
+  const msg = useMessages()
+  
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">読み込み中...</p>
+          <p className="text-gray-600">{msg.common.loading}</p>
         </div>
       </div>
     }>

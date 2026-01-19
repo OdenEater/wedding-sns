@@ -6,11 +6,12 @@ import Image from 'next/image'
 import { supabase } from '../../utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { User } from 'lucide-react'
-import content from './content.json'
+import { useMessages } from '@/hooks/useMessages'
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false)
     const router = useRouter()
+    const msg = useMessages()
 
     // GoogleOAuthログイン処理
     const handleGoogleLogin = async () => {
@@ -54,10 +55,10 @@ export default function LoginPage() {
                 {/* 上部：タイトル群 */}
                 <div className="w-full text-center pt-8 md:pt-12 space-y-3">
                     <p className="text-xs md:text-sm tracking-[0.3em] uppercase opacity-80">
-                        {content.welcomeLabel}
+                        {msg.auth.welcomeLabel}
                     </p>
                     <p className="text-sm md:text-base tracking-[0.2em] opacity-90">
-                        {content.title}
+                        {msg.auth.title}
                     </p>
                     <div className="w-px h-16 bg-white/30 mx-auto my-6" />
                 </div>
@@ -93,7 +94,7 @@ export default function LoginPage() {
                                 fill="#EA4335"
                             />
                         </svg>
-                        {content.googleLoginLabel}
+                        {msg.auth.googleLoginLabel}
                     </Button>
 
                     <Button
@@ -104,7 +105,7 @@ export default function LoginPage() {
                         className="h-12 rounded-lg text-white/80 hover:text-white hover:bg-white/10"
                     >
                         <User className="w-5 h-5 mr-2" />
-                        {content.guestLoginLabel}
+                        {msg.auth.guestLoginLabel}
                     </Button>
                 </div>
             </div>

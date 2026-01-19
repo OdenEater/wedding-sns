@@ -1,0 +1,68 @@
+{
+  "common": {
+    "appName": "Wedding SNS",
+    "loading": "読み込み中...",
+    "guest": "ゲスト"
+  },
+  "auth": {
+    "welcomeLabel": "Welcome",
+    "title": "Our Wedding Ceremony",
+    "googleLoginLabel": "Googleでログイン",
+    "guestLoginLabel": "ゲストとして続ける"
+  },
+  "navigation": {
+    "timeline": "タイムライン",
+    "gallery": "ギャラリー",
+    "logout": "ログアウト"
+  },
+  "timeline": {
+    "noPosts": "まだ投稿がありません",
+    "noPostsHint": "最初の投稿をしてみましょう！",
+    "reply": "返信",
+    "replyTo": "返信先",
+    "hideReplies": "返信を非表示",
+    "showReplies": "返信を表示 ({count})",
+    "returnTo": "返信する"
+  },
+  "post": {
+    "delete": "削除",
+    "edit": "編集",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "deleteConfirmTitle": "投稿を削除",
+    "deleteConfirmMessage": "この投稿を削除してもよろしいですか？\nこの操作は取り消せません。",
+    "deleteConfirmButton": "削除する",
+    "cancelButton": "キャンセル",
+    "deleteSuccess": "投稿を削除しました",
+    "deleteError": "投稿の削除に失敗しました",
+    "updateSuccess": "投稿を更新しました",
+    "updateError": "投稿の更新に失敗しました",
+    "characterCount": "{current} / {max}"
+  },
+  "newPost": {
+    "title": "新規投稿",
+    "replyTitle": "返信",
+    "replyTo": "返信先",
+    "placeholder": "感想を投稿してね",
+    "postButton": "投稿する",
+    "replyButton": "返信する",
+    "hint": "💡 140文字以内で投稿できます\n画像はギャラリーから投稿してください！",
+    "postError": "投稿に失敗しました。もう一度お試しください。"
+  },
+  "profile": {
+    "posts": "投稿",
+    "likes": "いいね",
+    "joinedAt": "参加日",
+    "noPosts": "まだ投稿がありません",
+    "backToTimeline": "タイムラインに戻る",
+    "editProfile": "プロフィールを編集",
+    "username": "表示名",
+    "saveProfile": "保存",
+    "cancelEdit": "キャンセル",
+    "updateSuccess": "プロフィールを更新しました",
+    "updateError": "プロフィールの更新に失敗しました"
+  },
+  "gallery": {
+    "title": "ギャラリー"
+  }
+}
