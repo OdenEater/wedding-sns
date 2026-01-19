@@ -75,6 +75,12 @@
     "replies": "返信",
     "backToTimeline": "タイムラインに戻る"
   },
+  "likes": {
+    "title": "いいねしたユーザー",
+    "count": "{count}人",
+    "noLikes": "まだいいねされていません",
+    "close": "閉じる"
+  },
   "gallery": {
     "title": "ギャラリー"
   }

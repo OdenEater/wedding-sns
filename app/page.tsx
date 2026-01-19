@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { LikesModal } from '@/components/ui/likes-modal'
 import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
@@ -37,6 +38,8 @@ export default function TimelinePage() {
   const [editContent, setEditContent] = useState('')
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [likesModalPostId, setLikesModalPostId] = useState<string | null>(null)
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
   const router = useRouter()
   const msg = useMessages()
 
@@ -360,6 +363,24 @@ export default function TimelinePage() {
     }
   }
 
+  // いいねボタン長押しハンドラー
+  const handleLongPressStart = (postId: string | null, likesCount: number | null) => {
+    if (!postId || (likesCount || 0) === 0) return
+    
+    const timer = setTimeout(() => {
+      setLikesModalPostId(postId)
+    }, 500) // 500ms長押しでモーダル表示
+    
+    setLongPressTimer(timer)
+  }
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      setLongPressTimer(null)
+    }
+  }
+
   // ローディング中の表示
   if (loading) {
     return (
@@ -572,6 +593,11 @@ export default function TimelinePage() {
                           <button 
                             className={`flex items-center gap-1.5 text-sm transition-colors ${post.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`} 
                             onClick={() => handleLike(post.id, post.is_liked_by_me)}
+                            onTouchStart={() => handleLongPressStart(post.id, post.likes_count)}
+                            onTouchEnd={handleLongPressEnd}
+                            onMouseDown={() => handleLongPressStart(post.id, post.likes_count)}
+                            onMouseUp={handleLongPressEnd}
+                            onMouseLeave={handleLongPressEnd}
                           >
                             <Heart className={`w-5 h-5 ${post.is_liked_by_me ? 'fill-pink-500' : ''}`} />
                             <span>{post.likes_count || 0}</span>
@@ -690,6 +716,11 @@ export default function TimelinePage() {
                                     <button 
                                       className={`flex items-center gap-1 text-xs transition-colors ${reply.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}
                                       onClick={() => handleLike(reply.id, reply.is_liked_by_me)}
+                                      onTouchStart={() => handleLongPressStart(reply.id, reply.likes_count)}
+                                      onTouchEnd={handleLongPressEnd}
+                                      onMouseDown={() => handleLongPressStart(reply.id, reply.likes_count)}
+                                      onMouseUp={handleLongPressEnd}
+                                      onMouseLeave={handleLongPressEnd}
                                     >
                                       <Heart className={`w-4 h-4 ${reply.is_liked_by_me ? 'fill-pink-500' : ''}`} />
                                       <span>{reply.likes_count || 0}</span>
@@ -750,6 +781,15 @@ export default function TimelinePage() {
           onConfirm={executeDelete}
           onCancel={() => setConfirmDelete(null)}
           variant="danger"
+        />
+      )}
+
+      {/* いいねユーザー一覧モーダル */}
+      {likesModalPostId && (
+        <LikesModal
+          postId={likesModalPostId}
+          isOpen={!!likesModalPostId}
+          onClose={() => setLikesModalPostId(null)}
         />
       )}
     </div>
