@@ -17,6 +17,8 @@ type Post = {
   username: string | null
   avatar_url: string | null
   likes_count: number | null
+  replies_count: number | null
+  parent_id: string | null
   is_liked_by_me: boolean | null
 }
 
@@ -26,6 +28,8 @@ export default function TimelinePage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [posts, setPosts] = useState<Post[]>([])
+  const [replies, setReplies] = useState<{ [key: string]: Post[] }>({})
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set())
   const router = useRouter()
 
   // 認証状態の確認
@@ -51,15 +55,36 @@ export default function TimelinePage() {
     const { data, error } = await supabase
       .from('posts_with_counts')
       .select('*')
+      .is('parent_id', null)
       .order('created_at', { ascending: false })
       .limit(50)
 
     if (error) {
       console.error('投稿取得エラー:', error)
+      console.error('エラー詳細:', JSON.stringify(error, null, 2))
       return
     }
 
-    setPosts(data || [])
+    // ユーザー情報を別途取得
+    const userIds = [...new Set(data?.map(p => p.user_id).filter((id): id is string => id !== null))]
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', userIds)
+
+    // データを整形
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+    const formattedPosts = (data || []).map((post: any) => {
+      const profile = profileMap.get(post.user_id)
+      return {
+        ...post,
+        username: profile?.username,
+        avatar_url: profile?.avatar_url,
+        is_liked_by_me: post.is_liked
+      }
+    })
+
+    setPosts(formattedPosts)
   }
 
   useEffect(() => {
@@ -115,6 +140,58 @@ export default function TimelinePage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  // 返信一覧の取得
+  const fetchReplies = async (postId: string) => {
+    const { data, error } = await supabase
+      .from('posts_with_counts')
+      .select('*')
+      .eq('parent_id', postId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('返信取得エラー:', error)
+      return
+    }
+
+    // ユーザー情報を別途取得
+    const userIds = [...new Set(data?.map(p => p.user_id).filter((id): id is string => id !== null))]
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', userIds)
+
+    // データを整形
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+    const formattedReplies = (data || []).map((reply: any) => {
+      const profile = profileMap.get(reply.user_id)
+      return {
+        ...reply,
+        username: profile?.username,
+        avatar_url: profile?.avatar_url,
+        is_liked_by_me: reply.is_liked
+      }
+    })
+
+    setReplies(prev => ({ ...prev, [postId]: formattedReplies }))
+  }
+
+  // 返信の表示/非表示を切り替え
+  const toggleReplies = async (postId: string) => {
+    const newExpandedPosts = new Set(expandedPosts)
+    
+    if (expandedPosts.has(postId)) {
+      newExpandedPosts.delete(postId)
+    } else {
+      newExpandedPosts.add(postId)
+      // 返信をまだ取得していない場合は取得
+      if (!replies[postId]) {
+        await fetchReplies(postId)
+      }
+    }
+    
+    setExpandedPosts(newExpandedPosts)
   }
 
   // いいね処理
@@ -307,16 +384,74 @@ export default function TimelinePage() {
                         </p>
                       </CardContent>
 
-                      <CardFooter className="pl-[4.5rem] pt-2 pb-4 flex gap-6">
-                        <button className={`flex items-center gap-1.5 text-sm transition-colors ${post.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`} onClick={() => handleLike(post.id, post.is_liked_by_me)}>
-                          <Heart className={`w-5 h-5 ${post.is_liked_by_me ? 'fill-pink-500' : ''}`} />
-                          <span>{post.likes_count || 0}</span>
-                        </button>
-                        
-                        <button className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors">
-                          <MessageCircle className="w-5 h-5" />
-                          <span>返信</span>
-                        </button>
+                      <CardFooter className="pl-[4.5rem] pt-2 pb-4 flex flex-col gap-4">
+                        <div className="flex gap-6">
+                          <button 
+                            className={`flex items-center gap-1.5 text-sm transition-colors ${post.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`} 
+                            onClick={() => handleLike(post.id, post.is_liked_by_me)}
+                          >
+                            <Heart className={`w-5 h-5 ${post.is_liked_by_me ? 'fill-pink-500' : ''}`} />
+                            <span>{post.likes_count || 0}</span>
+                          </button>
+                          
+                          {user && (
+                            <button 
+                              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors"
+                              onClick={() => router.push(`/post/new?replyTo=${post.id}`)}
+                            >
+                              <MessageCircle className="w-5 h-5" />
+                              <span>返信</span>
+                            </button>
+                          )}
+
+                          {(post.replies_count ?? 0) > 0 && (
+                            <button 
+                              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors"
+                              onClick={() => post.id && toggleReplies(post.id)}
+                            >
+                              <span className="text-xs">
+                                {expandedPosts.has(post.id || '') ? '返信を非表示' : `返信を表示 (${post.replies_count})`}
+                              </span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* 返信一覧 */}
+                        {expandedPosts.has(post.id || '') && replies[post.id || ''] && (
+                          <div className="border-t border-border/50 pt-4 space-y-3">
+                            {replies[post.id || ''].map((reply) => (
+                              <div key={reply.id} className="flex gap-3">
+                                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden flex-shrink-0">
+                                  {reply.avatar_url ? (
+                                    <img src={reply.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span>{reply.username?.[0]?.toUpperCase() || '👤'}</span>
+                                  )}
+                                </div>
+                                <div className="flex-1 bg-gray-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-bold">{reply.username || 'ゲスト'}</span>
+                                    <span className="text-xs text-gray-400">
+                                      {reply.created_at ? new Date(reply.created_at).toLocaleString('ja-JP') : ''}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-foreground/90 whitespace-pre-wrap">
+                                    {reply.content}
+                                  </p>
+                                  <div className="flex gap-4 mt-2">
+                                    <button 
+                                      className={`flex items-center gap-1 text-xs transition-colors ${reply.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}
+                                      onClick={() => handleLike(reply.id, reply.is_liked_by_me)}
+                                    >
+                                      <Heart className={`w-4 h-4 ${reply.is_liked_by_me ? 'fill-pink-500' : ''}`} />
+                                      <span>{reply.likes_count || 0}</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </CardFooter>
                     </Card>
                   ))
