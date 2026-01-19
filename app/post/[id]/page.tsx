@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { LikesModal } from '@/components/ui/likes-modal'
 import { ArrowLeft, Heart, MessageCircle, Edit2, Trash2, Check, XCircle, Link as LinkIcon } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
@@ -39,6 +40,8 @@ export default function PostDetailPage() {
   const [editContent, setEditContent] = useState('')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [likesModalPostId, setLikesModalPostId] = useState<string | null>(null)
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
 
   // 認証状態の確認
   useEffect(() => {
@@ -334,6 +337,24 @@ export default function PostDetailPage() {
     }
   }
 
+  // いいねボタン長押しハンドラー
+  const handleLongPressStart = (postId: string | null, likesCount: number | null) => {
+    if (!postId || (likesCount || 0) === 0) return
+    
+    const timer = setTimeout(() => {
+      setLikesModalPostId(postId)
+    }, 500) // 500ms長押しでモーダル表示
+    
+    setLongPressTimer(timer)
+  }
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      setLongPressTimer(null)
+    }
+  }
+
   // ローディング中
   if (loading) {
     return (
@@ -484,6 +505,11 @@ export default function PostDetailPage() {
                     : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                 }`}
                 onClick={() => handleLike(post.id, post.is_liked_by_me)}
+                onTouchStart={() => handleLongPressStart(post.id, post.likes_count)}
+                onTouchEnd={handleLongPressEnd}
+                onMouseDown={() => handleLongPressStart(post.id, post.likes_count)}
+                onMouseUp={handleLongPressEnd}
+                onMouseLeave={handleLongPressEnd}
               >
                 <Heart className={`w-4 h-4 ${post.is_liked_by_me ? 'fill-pink-500' : ''}`} />
                 <span>{post.likes_count || 0}</span>
@@ -626,6 +652,11 @@ export default function PostDetailPage() {
                             : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
                         }`}
                         onClick={() => handleLike(reply.id, reply.is_liked_by_me)}
+                        onTouchStart={() => handleLongPressStart(reply.id, reply.likes_count)}
+                        onTouchEnd={handleLongPressEnd}
+                        onMouseDown={() => handleLongPressStart(reply.id, reply.likes_count)}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
                       >
                         <Heart className={`w-4 h-4 ${reply.is_liked_by_me ? 'fill-pink-500' : ''}`} />
                         <span>{reply.likes_count || 0}</span>
@@ -668,6 +699,15 @@ export default function PostDetailPage() {
           onConfirm={executeDelete}
           onCancel={() => setConfirmDelete(null)}
           variant="danger"
+        />
+      )}
+
+      {/* いいねユーザー一覧モーダル */}
+      {likesModalPostId && (
+        <LikesModal
+          postId={likesModalPostId}
+          isOpen={!!likesModalPostId}
+          onClose={() => setLikesModalPostId(null)}
         />
       )}
     </div>
