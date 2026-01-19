@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus } from 'lucide-react'
+import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 // 投稿の型定義
@@ -30,6 +30,8 @@ export default function TimelinePage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [replies, setReplies] = useState<{ [key: string]: Post[] }>({})
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set())
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
   const router = useRouter()
 
   // 認証状態の確認
@@ -102,6 +104,18 @@ export default function TimelinePage() {
         },
         async () => {
           // 新規投稿があったら再取得
+          await fetchPosts()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'posts'
+        },
+        async () => {
+          // 投稿が編集されたら再取得
           await fetchPosts()
         }
       )
@@ -243,6 +257,93 @@ export default function TimelinePage() {
     }
   }
 
+  // 投稿削除
+  const handleDeletePost = async (postId: string | null) => {
+    if (!postId || !user) return
+    
+    const confirmed = confirm('この投稿を削除しますか?')
+    if (!confirmed) return
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id) // RLSで二重チェック
+
+      if (error) throw error
+
+      // 楽観的UI更新
+      setPosts(posts.filter(post => post.id !== postId))
+      
+      // 返信として削除した場合、返信リストも更新
+      setReplies(prev => {
+        const newReplies = { ...prev }
+        Object.keys(newReplies).forEach(key => {
+          newReplies[key] = newReplies[key].filter(reply => reply.id !== postId)
+        })
+        return newReplies
+      })
+
+    } catch (error) {
+      console.error('削除エラー:', error)
+      alert('投稿の削除に失敗しました')
+      await fetchPosts()
+    }
+  }
+
+  // 投稿編集開始
+  const startEditPost = (post: Post) => {
+    if (!post.id || !post.content) return
+    setEditingPostId(post.id)
+    setEditContent(post.content)
+  }
+
+  // 投稿編集キャンセル
+  const cancelEdit = () => {
+    setEditingPostId(null)
+    setEditContent('')
+  }
+
+  // 投稿編集保存
+  const handleUpdatePost = async (postId: string) => {
+    if (!user || !editContent.trim() || editContent.length > 140) return
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ content: editContent.trim() })
+        .eq('id', postId)
+        .eq('user_id', user.id) // RLSで二重チェック
+
+      if (error) throw error
+
+      // 楽観的UI更新
+      setPosts(posts.map(post => 
+        post.id === postId ? { ...post, content: editContent.trim() } : post
+      ))
+
+      // 返信リストも更新
+      setReplies(prev => {
+        const newReplies = { ...prev }
+        Object.keys(newReplies).forEach(key => {
+          newReplies[key] = newReplies[key].map(reply => 
+            reply.id === postId ? { ...reply, content: editContent.trim() } : reply
+          )
+        })
+        return newReplies
+      })
+
+      setEditingPostId(null)
+      setEditContent('')
+
+    } catch (error) {
+      console.error('更新エラー:', error)
+      alert('投稿の更新に失敗しました')
+      await fetchPosts()
+    }
+  }
+
   // ローディング中の表示
   if (loading) {
     return (
@@ -367,21 +468,82 @@ export default function TimelinePage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-bold text-foreground truncate">
-                              {post.username || 'ゲスト'}
-                            </p>
-                            <span className="text-xs text-gray-400">
-                              {post.created_at ? new Date(post.created_at).toLocaleString('ja-JP') : ''}
-                            </span>
+                            <div className="flex flex-col">
+                              <p className="text-sm font-bold text-foreground truncate">
+                                {post.username || 'ゲスト'}
+                              </p>
+                              <p className="text-sm text-gray-500">@{post.user_id?.slice(0, 8)}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">
+                                {post.created_at ? new Date(post.created_at).toLocaleString('ja-JP') : ''}
+                              </span>
+                              {/* 自分の投稿の場合のみ編集・削除ボタン表示 */}
+                              {user && post.user_id === user.id && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-gray-400 hover:text-primary"
+                                    onClick={() => startEditPost(post)}
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-gray-400 hover:text-red-500"
+                                    onClick={() => handleDeletePost(post.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-500">@{post.user_id?.slice(0, 8)}</p>
                         </div>
                       </CardHeader>
                       
                       <CardContent className="pb-2 pl-[4.5rem]">
-                        <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90">
-                          {post.content}
-                        </p>
+                        {editingPostId === post.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              maxLength={140}
+                              autoFocus
+                            />
+                            <div className="flex items-center justify-between">
+                              <span className={`text-sm ${editContent.length > 140 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
+                                {editContent.length} / 140
+                              </span>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={cancelEdit}
+                                  className="text-gray-500"
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" />
+                                  キャンセル
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => post.id && handleUpdatePost(post.id)}
+                                  disabled={!editContent.trim() || editContent.length > 140}
+                                >
+                                  <Check className="w-4 h-4 mr-1" />
+                                  保存
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90">
+                            {post.content}
+                          </p>
+                        )}
                       </CardContent>
 
                       <CardFooter className="pl-[4.5rem] pt-2 pb-4 flex flex-col gap-4">
@@ -434,10 +596,68 @@ export default function TimelinePage() {
                                     <span className="text-xs text-gray-400">
                                       {reply.created_at ? new Date(reply.created_at).toLocaleString('ja-JP') : ''}
                                     </span>
+                                    {/* 自分の返信の場合のみ編集・削除ボタン表示 */}
+                                    {user && reply.user_id === user.id && (
+                                      <div className="ml-auto flex gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-gray-400 hover:text-primary"
+                                          onClick={() => startEditPost(reply)}
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-gray-400 hover:text-red-500"
+                                          onClick={() => handleDeletePost(reply.id)}
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
-                                  <p className="text-sm text-foreground/90 whitespace-pre-wrap">
-                                    {reply.content}
-                                  </p>
+                                  {editingPostId === reply.id ? (
+                                    <div className="space-y-2">
+                                      <textarea
+                                        className="w-full min-h-[60px] p-2 border border-gray-300 rounded-md resize-none text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        value={editContent}
+                                        onChange={(e) => setEditContent(e.target.value)}
+                                        maxLength={140}
+                                        autoFocus
+                                      />
+                                      <div className="flex items-center justify-between">
+                                        <span className={`text-xs ${editContent.length > 140 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
+                                          {editContent.length} / 140
+                                        </span>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={cancelEdit}
+                                            className="text-gray-500 h-7 text-xs"
+                                          >
+                                            <XCircle className="w-3 h-3 mr-1" />
+                                            キャンセル
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => reply.id && handleUpdatePost(reply.id)}
+                                            disabled={!editContent.trim() || editContent.length > 140}
+                                            className="h-7 text-xs"
+                                          >
+                                            <Check className="w-3 h-3 mr-1" />
+                                            保存
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-foreground/90 whitespace-pre-wrap">
+                                      {reply.content}
+                                    </p>
+                                  )}
                                   <div className="flex gap-4 mt-2">
                                     <button 
                                       className={`flex items-center gap-1 text-xs transition-colors ${reply.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}
