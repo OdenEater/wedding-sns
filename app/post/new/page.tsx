@@ -1,18 +1,69 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
-import { ArrowLeft, Send, Image as ImageIcon } from 'lucide-react'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { ArrowLeft, Send, Image as ImageIcon, MessageCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
+
+// 投稿の型定義
+type Post = {
+  id: string
+  content: string
+  created_at: string
+  user_id: string
+  username: string | null
+  avatar_url: string | null
+}
 
 export default function NewPostPage() {
   const [content, setContent] = useState('')
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [parentPost, setParentPost] = useState<Post | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const replyToId = searchParams.get('replyTo')
+
+  // 返信元投稿の取得
+  useEffect(() => {
+    const fetchParentPost = async () => {
+      if (!replyToId) return
+
+      const { data, error } = await supabase
+        .from('posts_with_counts')
+        .select('*')
+        .eq('id', replyToId)
+        .single()
+
+      if (error) {
+        console.error('返信元投稿取得エラー:', error)
+        return
+      }
+
+      if (!data.id || !data.content || !data.created_at || !data.user_id) return
+
+      // ユーザー情報を取得
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', data.user_id)
+        .single()
+
+      setParentPost({
+        id: data.id,
+        content: data.content,
+        created_at: data.created_at,
+        user_id: data.user_id,
+        username: profile?.username || null,
+        avatar_url: profile?.avatar_url || null
+      })
+    }
+
+    fetchParentPost()
+  }, [replyToId])
 
   // 認証状態の確認
   useEffect(() => {
@@ -56,7 +107,8 @@ export default function NewPostPage() {
         .insert([
           {
             content: content.trim(),
-            user_id: user.id
+            user_id: user.id,
+            parent_id: replyToId || null
           }
         ])
 
@@ -98,7 +150,9 @@ export default function NewPostPage() {
             >
               <ArrowLeft className="w-6 h-6" />
             </Button>
-            <h1 className="text-xl font-bold text-foreground">新規投稿</h1>
+            <h1 className="text-xl font-bold text-foreground">
+              {replyToId ? '返信' : '新規投稿'}
+            </h1>
           </div>
           <Button 
             disabled={content.length === 0 || content.length > 140 || loading} 
@@ -106,13 +160,49 @@ export default function NewPostPage() {
             onClick={handlePost}
           >
             <Send className="w-4 h-4 mr-2" />
-            投稿する
+            {replyToId ? '返信する' : '投稿する'}
           </Button>
         </div>
       </header>
 
       {/* メインコンテンツ */}
       <main className="container max-w-2xl mx-auto px-4 py-6">
+        {/* 返信元投稿の表示 */}
+        {parentPost && (
+          <Card className="border-none shadow-sm mb-4 bg-gray-50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <MessageCircle className="w-4 h-4" />
+                <span>返信先</span>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
+                  {parentPost.avatar_url ? (
+                    <img src={parentPost.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{parentPost.username?.[0]?.toUpperCase() || '👤'}</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-foreground">
+                      {parentPost.username || 'ゲスト'}
+                    </p>
+                    <span className="text-xs text-gray-400">
+                      {new Date(parentPost.created_at).toLocaleString('ja-JP')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">
+                    {parentPost.content}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="border-none shadow-md overflow-hidden">
           <CardContent className="pt-6">
             <div className="flex gap-4">
