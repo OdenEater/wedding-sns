@@ -39,6 +39,11 @@
       "id": "groom-8",
       "label": "動物8",
       "filename": "1_8.jpg"
+    },
+    {
+      "id": "groom-9",
+      "label": "動物9",
+      "filename": "1_9.jpg"
     }
   ],
   "brideAvatars": [
@@ -51,6 +56,41 @@
       "id": "bride-2",
       "label": "動物2",
       "filename": "2_2.jpg"
+    },
+    {
+      "id": "bride-3",
+      "label": "動物3",
+      "filename": "2_3.jpg"
+    },
+    {
+      "id": "bride-4",
+      "label": "動物4",
+      "filename": "2_4.jpg"
+    },
+    {
+      "id": "bride-5",
+      "label": "動物5",
+      "filename": "2_5.jpg"
+    },
+    {
+      "id": "bride-6",
+      "label": "動物6",
+      "filename": "2_6.jpg"
+    },
+    {
+      "id": "bride-7",
+      "label": "動物7",
+      "filename": "2_7.jpg"
+    },
+    {
+      "id": "bride-8",
+      "label": "動物8",
+      "filename": "2_8.jpg"
+    },
+    {
+      "id": "bride-9",
+      "label": "動物9",
+      "filename": "2_9.jpg"
     }
   ],
   "emojiAnimals": [
