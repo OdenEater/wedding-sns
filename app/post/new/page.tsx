@@ -20,10 +20,17 @@ type Post = {
   avatar_url: string | null
 }
 
+// プロフィール型定義
+type Profile = {
+  username: string | null
+  avatar_url: string | null
+}
+
 // useSearchParams() を使用するコンポーネントを分離
 function NewPostContent() {
   const [content, setContent] = useState('')
   const [user, setUser] = useState<User | null>(null)
+  const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [parentPost, setParentPost] = useState<Post | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -70,7 +77,7 @@ function NewPostContent() {
     fetchParentPost()
   }, [replyToId])
 
-  // 認証状態の確認
+  // 認証状態の確認とプロフィール取得
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -82,17 +89,40 @@ function NewPostContent() {
       }
       
       setUser(user)
+
+      // プロフィール情報を取得
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        setUserProfile(profile)
+      }
+      
       setLoading(false)
     }
 
     checkUser()
 
     // 認証状態の変更を監視
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session?.user) {
         router.push('/login')
       } else {
         setUser(session.user)
+        
+        // プロフィール情報を再取得
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profile) {
+          setUserProfile(profile)
+        }
       }
     })
 
@@ -191,7 +221,11 @@ function NewPostContent() {
               <div className="flex gap-3">
                 <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                   {parentPost.avatar_url ? (
-                    <img src={parentPost.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                    parentPost.avatar_url.startsWith('emoji:') ? (
+                      <span className="text-2xl">{parentPost.avatar_url.replace('emoji:', '')}</span>
+                    ) : (
+                      <img src={parentPost.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                    )
                   ) : (
                     <span>{parentPost.username?.[0]?.toUpperCase() || '👤'}</span>
                   )}
@@ -218,10 +252,14 @@ function NewPostContent() {
           <CardContent className="pt-6">
             <div className="flex gap-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
-                {user?.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                {userProfile?.avatar_url ? (
+                  userProfile.avatar_url.startsWith('emoji:') ? (
+                    <span className="text-2xl">{userProfile.avatar_url.replace('emoji:', '')}</span>
+                  ) : (
+                    <img src={userProfile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                  )
                 ) : (
-                  <span>{user?.email?.[0].toUpperCase() || '👤'}</span>
+                  <span>{userProfile?.username?.[0]?.toUpperCase() || user?.email?.[0].toUpperCase() || '👤'}</span>
                 )}
               </div>
               <div className="flex-1">

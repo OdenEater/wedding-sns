@@ -1,0 +1,262 @@
+{
+  "groomAvatars": [
+    {
+      "id": "groom-1",
+      "label": "動物1",
+      "filename": "1_1.jpg"
+    },
+    {
+      "id": "groom-2",
+      "label": "動物2",
+      "filename": "1_2.jpg"
+    },
+    {
+      "id": "groom-3",
+      "label": "動物3",
+      "filename": "1_3.jpg"
+    },
+    {
+      "id": "groom-4",
+      "label": "動物4",
+      "filename": "1_4.jpg"
+    },
+    {
+      "id": "groom-5",
+      "label": "動物5",
+      "filename": "1_5.jpg"
+    },
+    {
+      "id": "groom-6",
+      "label": "動物6",
+      "filename": "1_6.jpg"
+    },
+    {
+      "id": "groom-7",
+      "label": "動物7",
+      "filename": "1_7.jpg"
+    },
+    {
+      "id": "groom-8",
+      "label": "動物8",
+      "filename": "1_8.jpg"
+    },
+    {
+      "id": "groom-9",
+      "label": "動物9",
+      "filename": "1_9.jpg"
+    }
+  ],
+  "brideAvatars": [
+    {
+      "id": "bride-1",
+      "label": "動物1",
+      "filename": "2_1.jpg"
+    },
+    {
+      "id": "bride-2",
+      "label": "動物2",
+      "filename": "2_2.jpg"
+    },
+    {
+      "id": "bride-3",
+      "label": "動物3",
+      "filename": "2_3.jpg"
+    },
+    {
+      "id": "bride-4",
+      "label": "動物4",
+      "filename": "2_4.jpg"
+    },
+    {
+      "id": "bride-5",
+      "label": "動物5",
+      "filename": "2_5.jpg"
+    },
+    {
+      "id": "bride-6",
+      "label": "動物6",
+      "filename": "2_6.jpg"
+    },
+    {
+      "id": "bride-7",
+      "label": "動物7",
+      "filename": "2_7.jpg"
+    },
+    {
+      "id": "bride-8",
+      "label": "動物8",
+      "filename": "2_8.jpg"
+    },
+    {
+      "id": "bride-9",
+      "label": "動物9",
+      "filename": "2_9.jpg"
+    }
+  ],
+  "emojiAnimals": [
+    {
+      "id": "emoji-cat",
+      "label": "猫",
+      "emoji": "🐱"
+    },
+    {
+      "id": "emoji-dog",
+      "label": "犬",
+      "emoji": "🐶"
+    },
+    {
+      "id": "emoji-rabbit",
+      "label": "うさぎ",
+      "emoji": "🐰"
+    },
+    {
+      "id": "emoji-bear",
+      "label": "くま",
+      "emoji": "🐻"
+    },
+    {
+      "id": "emoji-panda",
+      "label": "パンダ",
+      "emoji": "🐼"
+    },
+    {
+      "id": "emoji-fox",
+      "label": "きつね",
+      "emoji": "🦊"
+    },
+    {
+      "id": "emoji-koala",
+      "label": "コアラ",
+      "emoji": "🐨"
+    },
+    {
+      "id": "emoji-tiger",
+      "label": "トラ",
+      "emoji": "🐯"
+    },
+    {
+      "id": "emoji-lion",
+      "label": "ライオン",
+      "emoji": "🦁"
+    },
+    {
+      "id": "emoji-pig",
+      "label": "ブタ",
+      "emoji": "🐷"
+    },
+    {
+      "id": "emoji-frog",
+      "label": "カエル",
+      "emoji": "🐸"
+    },
+    {
+      "id": "emoji-chick",
+      "label": "ひよこ",
+      "emoji": "🐥"
+    }
+  ],
+  "emojiFaces": [
+    {
+      "id": "emoji-smile",
+      "label": "笑顔",
+      "emoji": "😊"
+    },
+    {
+      "id": "emoji-laugh",
+      "label": "大笑い",
+      "emoji": "😄"
+    },
+    {
+      "id": "emoji-love",
+      "label": "ラブ",
+      "emoji": "🥰"
+    },
+    {
+      "id": "emoji-heart-eyes",
+      "label": "目がハート",
+      "emoji": "😍"
+    },
+    {
+      "id": "emoji-hug",
+      "label": "ハグ",
+      "emoji": "🤗"
+    },
+    {
+      "id": "emoji-angel",
+      "label": "天使",
+      "emoji": "😇"
+    },
+    {
+      "id": "emoji-party",
+      "label": "パーティー",
+      "emoji": "🥳"
+    },
+    {
+      "id": "emoji-cool",
+      "label": "サングラス",
+      "emoji": "😎"
+    },
+    {
+      "id": "emoji-star-eyes",
+      "label": "スター",
+      "emoji": "🤩"
+    },
+    {
+      "id": "emoji-kiss",
+      "label": "投げキッス",
+      "emoji": "😘"
+    },
+    {
+      "id": "emoji-grin",
+      "label": "グリン",
+      "emoji": "😁"
+    },
+    {
+      "id": "emoji-blush",
+      "label": "微笑み",
+      "emoji": "☺️"
+    }
+  ],
+  "emojiCelebration": [
+    {
+      "id": "emoji-tada",
+      "label": "クラッカー",
+      "emoji": "🎉"
+    },
+    {
+      "id": "emoji-confetti",
+      "label": "くす玉",
+      "emoji": "🎊"
+    },
+    {
+      "id": "emoji-balloon",
+      "label": "風船",
+      "emoji": "🎈"
+    },
+    {
+      "id": "emoji-ribbon",
+      "label": "リボン",
+      "emoji": "🎀"
+    },
+    {
+      "id": "emoji-gift",
+      "label": "プレゼント",
+      "emoji": "🎁"
+    },
+    {
+      "id": "emoji-crown",
+      "label": "王冠",
+      "emoji": "👑"
+    },
+    {
+      "id": "emoji-ring",
+      "label": "指輪",
+      "emoji": "💍"
+    },
+    {
+      "id": "emoji-cheers",
+      "label": "乾杯",
+      "emoji": "🥂"
+    }
+  ]
+}
