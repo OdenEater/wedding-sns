@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LikesModal } from '@/components/ui/likes-modal'
+import { AvatarModal } from '@/components/ui/avatar-modal'
 import { ArrowLeft, Heart, MessageCircle, Edit2, Trash2, Check, XCircle, Link as LinkIcon } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
@@ -42,6 +43,7 @@ export default function PostDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [likesModalPostId, setLikesModalPostId] = useState<string | null>(null)
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
+  const [avatarModal, setAvatarModal] = useState<{ avatarUrl: string | null; username: string | null } | null>(null)
 
   // 認証状態の確認
   useEffect(() => {
@@ -414,13 +416,20 @@ export default function PostDetailPage() {
         {/* メイン投稿（ハイライト表示） */}
         <Card className="border-none shadow-md mb-6 bg-primary/5 border-l-4 border-primary">
           <CardHeader className="flex flex-row items-start gap-4 pb-2">
-            <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl shadow-inner overflow-hidden flex-shrink-0">
+            <button
+              onClick={() => setAvatarModal({ avatarUrl: post.avatar_url, username: post.username })}
+              className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl shadow-inner overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary transition-all"
+            >
               {post.avatar_url ? (
-                <img src={post.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                post.avatar_url.startsWith('emoji:') ? (
+                  <span className="text-2xl">{post.avatar_url.replace('emoji:', '')}</span>
+                ) : (
+                  <img src={post.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                )
               ) : (
                 <span>{post.username?.[0]?.toUpperCase() || '👤'}</span>
               )}
-            </div>
+            </button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <button
@@ -559,13 +568,20 @@ export default function PostDetailPage() {
               <Card key={reply.id} className="border-none shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
+                    <button
+                      onClick={() => setAvatarModal({ avatarUrl: reply.avatar_url, username: reply.username })}
+                      className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary transition-all"
+                    >
                       {reply.avatar_url ? (
-                        <img src={reply.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                        reply.avatar_url.startsWith('emoji:') ? (
+                          <span className="text-2xl">{reply.avatar_url.replace('emoji:', '')}</span>
+                        ) : (
+                          <img src={reply.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                        )
                       ) : (
                         <span>{reply.username?.[0]?.toUpperCase() || '👤'}</span>
                       )}
-                    </div>
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <button
@@ -708,6 +724,16 @@ export default function PostDetailPage() {
           postId={likesModalPostId}
           isOpen={!!likesModalPostId}
           onClose={() => setLikesModalPostId(null)}
+        />
+      )}
+
+      {/* アバター拡大表示モーダル */}
+      {avatarModal && (
+        <AvatarModal
+          avatarUrl={avatarModal.avatarUrl}
+          username={avatarModal.username}
+          isOpen={!!avatarModal}
+          onClose={() => setAvatarModal(null)}
         />
       )}
     </div>

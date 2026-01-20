@@ -6,7 +6,9 @@ import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Toast } from '@/components/ui/toast'
-import { ArrowLeft, Heart, MessageCircle, Edit2, Check, XCircle } from 'lucide-react'
+import { AvatarSelector } from '@/components/ui/avatar-selector'
+import { AvatarModal } from '@/components/ui/avatar-modal'
+import { ArrowLeft, Heart, MessageCircle, Edit2, Check, XCircle, Camera } from 'lucide-react'
 import { useMessages } from '@/hooks/useMessages'
 import type { User } from '@supabase/supabase-js'
 
@@ -38,6 +40,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editUsername, setEditUsername] = useState('')
+  const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null)
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false)
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [stats, setStats] = useState({
     postsCount: 0
@@ -106,12 +111,19 @@ export default function ProfilePage() {
   const startEdit = () => {
     setIsEditing(true)
     setEditUsername(profile?.username || '')
+    setEditAvatarUrl(profile?.avatar_url || null)
   }
 
   // プロフィール編集キャンセル
   const cancelEdit = () => {
     setIsEditing(false)
     setEditUsername(profile?.username || '')
+    setEditAvatarUrl(profile?.avatar_url || null)
+  }
+
+  // アバター選択
+  const handleSelectAvatar = (avatarUrl: string) => {
+    setEditAvatarUrl(avatarUrl)
   }
 
   // プロフィール更新
@@ -121,13 +133,20 @@ export default function ProfilePage() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ username: editUsername.trim() })
+        .update({ 
+          username: editUsername.trim(),
+          avatar_url: editAvatarUrl
+        })
         .eq('id', userId)
 
       if (error) throw error
 
       // ローカル状態を更新
-      setProfile(prev => prev ? { ...prev, username: editUsername.trim() } : null)
+      setProfile(prev => prev ? { 
+        ...prev, 
+        username: editUsername.trim(),
+        avatar_url: editAvatarUrl
+      } : null)
       setIsEditing(false)
       setToast({ message: msg.profile.updateSuccess, type: "success" })
 
@@ -190,11 +209,34 @@ export default function ProfilePage() {
           <CardContent className="pt-6">
             <div className="flex gap-6 items-start">
               {/* アバター */}
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl overflow-hidden flex-shrink-0">
-                {profile.avatar_url ? (
-                  <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{profile.username?.[0]?.toUpperCase() || '👤'}</span>
+              <div className="relative">
+                <button
+                  onClick={() => !isEditing && setShowAvatarModal(true)}
+                  disabled={isEditing}
+                  className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl overflow-hidden flex-shrink-0 hover:ring-4 hover:ring-primary/50 transition-all disabled:hover:ring-0 disabled:cursor-default"
+                >
+                  {(isEditing ? editAvatarUrl : profile.avatar_url) ? (
+                    (() => {
+                      const url = isEditing ? editAvatarUrl : profile.avatar_url
+                      if (url?.startsWith('emoji:')) {
+                        const emoji = url.replace('emoji:', '')
+                        return <span className="text-4xl">{emoji}</span>
+                      }
+                      return <img src={url!} alt="avatar" className="w-full h-full object-cover" />
+                    })()
+                  ) : (
+                    <span>{profile.username?.[0]?.toUpperCase() || '👤'}</span>
+                  )}
+                </button>
+                {/* 編集中のみアバター変更ボタン表示 */}
+                {isEditing && (
+                  <button
+                    onClick={() => setShowAvatarSelector(true)}
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+                    title={msg.profile.changeAvatar}
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
                 )}
               </div>
 
@@ -262,19 +304,24 @@ export default function ProfilePage() {
             </div>
           ) : (
             posts.map((post) => (
-              <Card key={post.id} className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm text-gray-500">
-                      {post.created_at ? new Date(post.created_at).toLocaleString('ja-JP') : ''}
+              <button
+                key={post.id}
+                onClick={() => router.push(`/post/${post.id}`)}
+                className="w-full text-left"
+              >
+                <Card className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm text-gray-500">
+                        {post.created_at ? new Date(post.created_at).toLocaleString('ja-JP') : ''}
+                      </p>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="pb-4">
+                    <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90 mb-3">
+                      {post.content}
                     </p>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="pb-4">
-                  <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90 mb-3">
-                    {post.content}
-                  </p>
                   
                   <div className="flex gap-6 text-sm text-gray-500">
                     <div className="flex items-center gap-1.5">
@@ -288,6 +335,7 @@ export default function ProfilePage() {
                   </div>
                 </CardContent>
               </Card>
+            </button>
             ))
           )}
         </div>
@@ -301,6 +349,22 @@ export default function ProfilePage() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* アバター選択モーダル */}
+      <AvatarSelector
+        currentAvatarUrl={editAvatarUrl}
+        isOpen={showAvatarSelector}
+        onClose={() => setShowAvatarSelector(false)}
+        onSelect={handleSelectAvatar}
+      />
+
+      {/* アバター拡大表示モーダル */}
+      <AvatarModal
+        avatarUrl={profile?.avatar_url || null}
+        username={profile?.username || null}
+        isOpen={showAvatarModal}
+        onClose={() => setShowAvatarModal(false)}
+      />
     </div>
   )
 }

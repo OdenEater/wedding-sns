@@ -126,11 +126,15 @@ export function LikesModal({ postId, isOpen, onClose }: LikesModalProps) {
                 >
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                     {user.avatar_url ? (
-                      <img 
-                        src={user.avatar_url} 
-                        alt="avatar" 
-                        className="w-full h-full object-cover" 
-                      />
+                      user.avatar_url.startsWith('emoji:') ? (
+                        <span className="text-2xl">{user.avatar_url.replace('emoji:', '')}</span>
+                      ) : (
+                        <img 
+                          src={user.avatar_url} 
+                          alt="avatar" 
+                          className="w-full h-full object-cover" 
+                        />
+                      )
                     ) : (
                       <span>{user.username?.[0]?.toUpperCase() || '👤'}</span>
                     )}

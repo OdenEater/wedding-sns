@@ -2,7 +2,9 @@
   "common": {
     "appName": "Wedding SNS",
     "loading": "読み込み中...",
-    "guest": "ゲスト"
+    "guest": "ゲスト",
+    "cancel": "キャンセル",
+    "save": "保存"
   },
   "auth": {
     "welcomeLabel": "Welcome",
@@ -13,6 +15,7 @@
   "navigation": {
     "timeline": "タイムライン",
     "gallery": "ギャラリー",
+    "profile": "プロフィール",
     "logout": "ログアウト"
   },
   "timeline": {
@@ -59,6 +62,16 @@
     "backToTimeline": "タイムラインに戻る",
     "editProfile": "プロフィールを編集",
     "username": "表示名",
+    "avatar": "アバター画像",
+    "selectAvatar": "アバターを選択",
+    "groomAvatars": "{name}が描いた",
+    "brideAvatars": "{name}が描いた",
+    "animalAvatars": "動物アバター",
+    "emojiAvatars": "絵文字アバター",
+    "emojiAnimals": "絵文字 - 動物",
+    "emojiFaces": "絵文字 - 表情",
+    "emojiCelebration": "絵文字 - お祝い",
+    "changeAvatar": "アバターを変更",
     "saveProfile": "保存",
     "cancelEdit": "キャンセル",
     "updateSuccess": "プロフィールを更新しました",

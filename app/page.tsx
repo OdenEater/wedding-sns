@@ -8,7 +8,8 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LikesModal } from '@/components/ui/likes-modal'
-import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle } from 'lucide-react'
+import { AvatarModal } from '@/components/ui/avatar-modal'
+import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle, User as UserIcon } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
 
@@ -40,6 +41,7 @@ export default function TimelinePage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [likesModalPostId, setLikesModalPostId] = useState<string | null>(null)
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
+  const [avatarModal, setAvatarModal] = useState<{ avatarUrl: string | null; username: string | null } | null>(null)
   const router = useRouter()
   const msg = useMessages()
 
@@ -446,6 +448,18 @@ export default function TimelinePage() {
                 <ImageIcon className="w-5 h-5" />
                 <span className="font-medium">{msg.navigation.gallery}</span>
               </button>
+              {user && (
+                <button 
+                  onClick={() => { 
+                    router.push(`/profile/${user.id}`);
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
+                >
+                  <UserIcon className="w-5 h-5" />
+                  <span className="font-medium">{msg.navigation.profile}</span>
+                </button>
+              )}
             </nav>
           </div>
         )}
@@ -465,6 +479,17 @@ export default function TimelinePage() {
           <nav className="flex-1 space-y-2">
             <NavItem id="timeline" icon={Home} label={msg.navigation.timeline} />
             <NavItem id="gallery" icon={ImageIcon} label={msg.navigation.gallery} />
+            
+            {/* プロフィールリンク */}
+            {user && (
+              <button
+                onClick={() => router.push(`/profile/${user.id}`)}
+                className="w-full flex items-center gap-4 px-6 py-4 text-gray-600 hover:bg-primary/5 hover:text-primary rounded-lg transition-all"
+              >
+                <UserIcon className="w-6 h-6" />
+                <span className="text-lg">{msg.navigation.profile}</span>
+              </button>
+            )}
           </nav>
 
           <div className="px-4 mt-auto">
@@ -496,13 +521,20 @@ export default function TimelinePage() {
                   posts.map((post) => (
                     <Card key={post.id} className="border-none shadow-sm hover:shadow-md transition-shadow duration-200">
                       <CardHeader className="flex flex-row items-start gap-4 pb-2">
-                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl shadow-inner overflow-hidden">
+                        <button
+                          onClick={() => setAvatarModal({ avatarUrl: post.avatar_url, username: post.username })}
+                          className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl shadow-inner overflow-hidden hover:ring-2 hover:ring-primary transition-all flex-shrink-0"
+                        >
                           {post.avatar_url ? (
-                            <img src={post.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                            post.avatar_url.startsWith('emoji:') ? (
+                              <span className="text-2xl">{post.avatar_url.replace('emoji:', '')}</span>
+                            ) : (
+                              <img src={post.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                            )
                           ) : (
                             <span>{post.username?.[0]?.toUpperCase() || '👤'}</span>
                           )}
-                        </div>
+                        </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <div className="flex flex-col">
@@ -632,13 +664,20 @@ export default function TimelinePage() {
                           <div className="border-t border-border/50 pt-4 space-y-3">
                             {replies[post.id || ''].map((reply) => (
                               <div key={reply.id} className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden flex-shrink-0">
+                                <button
+                                  onClick={() => setAvatarModal({ avatarUrl: reply.avatar_url, username: reply.username })}
+                                  className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary transition-all"
+                                >
                                   {reply.avatar_url ? (
-                                    <img src={reply.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                    reply.avatar_url.startsWith('emoji:') ? (
+                                      <span className="text-lg">{reply.avatar_url.replace('emoji:', '')}</span>
+                                    ) : (
+                                      <img src={reply.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                    )
                                   ) : (
                                     <span>{reply.username?.[0]?.toUpperCase() || '👤'}</span>
                                   )}
-                                </div>
+                                </button>
                                 <div className="flex-1 bg-gray-50 rounded-lg p-3">
                                   <div className="flex items-center gap-2 mb-1">
                                     <button
@@ -790,6 +829,16 @@ export default function TimelinePage() {
           postId={likesModalPostId}
           isOpen={!!likesModalPostId}
           onClose={() => setLikesModalPostId(null)}
+        />
+      )}
+
+      {/* アバター拡大表示モーダル */}
+      {avatarModal && (
+        <AvatarModal
+          avatarUrl={avatarModal.avatarUrl}
+          username={avatarModal.username}
+          isOpen={!!avatarModal}
+          onClose={() => setAvatarModal(null)}
         />
       )}
     </div>
