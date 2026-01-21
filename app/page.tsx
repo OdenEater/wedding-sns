@@ -9,7 +9,7 @@ import { Toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LikesModal } from '@/components/ui/likes-modal'
 import { AvatarModal } from '@/components/ui/avatar-modal'
-import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle, User as UserIcon } from 'lucide-react'
+import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle, User as UserIcon, Music, Settings } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
 
@@ -27,8 +27,24 @@ type Post = {
   is_liked_by_me: boolean | null
 }
 
+// セットリストの型定義
+type SetlistItem = {
+  id: string
+  order_num: number
+  title: string
+  artist: string
+  scene: string
+  comment: string | null
+  is_public: boolean
+  created_at: string
+  updated_at: string
+}
+
+// 管理者メールアドレス
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || ''
+
 export default function TimelinePage() {
-  const [activeTab, setActiveTab] = useState<'timeline' | 'gallery'>('timeline')
+  const [activeTab, setActiveTab] = useState<'timeline' | 'gallery' | 'setlist' | 'setlist-admin'>('timeline')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -42,8 +58,12 @@ export default function TimelinePage() {
   const [likesModalPostId, setLikesModalPostId] = useState<string | null>(null)
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
   const [avatarModal, setAvatarModal] = useState<{ avatarUrl: string | null; username: string | null } | null>(null)
+  const [setlist, setSetlist] = useState<SetlistItem[]>([])
   const router = useRouter()
   const msg = useMessages()
+
+  // 管理者かどうかをチェック
+  const isAdmin = user?.email === ADMIN_EMAIL
 
   // 認証状態の確認
   useEffect(() => {
@@ -100,8 +120,24 @@ export default function TimelinePage() {
     setPosts(formattedPosts)
   }
 
+  // セットリストの取得
+  const fetchSetlist = async () => {
+    const { data, error } = await supabase
+      .from('setlist')
+      .select('*')
+      .order('order_num', { ascending: true })
+
+    if (error) {
+      console.error('セットリスト取得エラー:', error)
+      return
+    }
+
+    setSetlist(data || [])
+  }
+
   useEffect(() => {
     fetchPosts()
+    fetchSetlist()
 
     // リアルタイム更新の購読
     const channel = supabase
@@ -154,6 +190,18 @@ export default function TimelinePage() {
           await fetchPosts()
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'setlist'
+        },
+        async () => {
+          // セットリストの変更があったら再取得
+          await fetchSetlist()
+        }
+      )
       .subscribe()
 
     return () => {
@@ -165,6 +213,29 @@ export default function TimelinePage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  // セットリストの公開状態を切り替え
+  const toggleSetlistPublic = async (id: string, currentIsPublic: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('setlist')
+        .update({ is_public: !currentIsPublic })
+        .eq('id', id)
+
+      if (error) throw error
+
+      setToast({
+        message: msg.setlist.updateSuccess,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('セットリスト更新エラー:', error)
+      setToast({
+        message: msg.setlist.updateError,
+        type: 'error'
+      })
+    }
   }
 
   // 返信一覧の取得
@@ -396,7 +467,7 @@ export default function TimelinePage() {
   }
 
   // サイドバーのナビゲーション項目
-  const NavItem = ({ id, icon: Icon, label }: { id: 'timeline' | 'gallery', icon: any, label: string }) => (
+  const NavItem = ({ id, icon: Icon, label }: { id: 'timeline' | 'gallery' | 'setlist' | 'setlist-admin', icon: any, label: string }) => (
     <button
       onClick={() => setActiveTab(id)}
       className={`flex items-center gap-4 px-4 py-3 w-full rounded-full transition-colors text-lg font-medium
@@ -448,6 +519,22 @@ export default function TimelinePage() {
                 <ImageIcon className="w-5 h-5" />
                 <span className="font-medium">{msg.navigation.gallery}</span>
               </button>
+              <button 
+                onClick={() => { setActiveTab('setlist'); setIsMenuOpen(false); }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'setlist' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Music className="w-5 h-5" />
+                <span className="font-medium">{msg.setlist.title}</span>
+              </button>
+              {isAdmin && (
+                <button 
+                  onClick={() => { setActiveTab('setlist-admin'); setIsMenuOpen(false); }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'setlist-admin' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="font-medium">{msg.setlist.admin}</span>
+                </button>
+              )}
               {user && (
                 <button 
                   onClick={() => { 
@@ -479,6 +566,10 @@ export default function TimelinePage() {
           <nav className="flex-1 space-y-2">
             <NavItem id="timeline" icon={Home} label={msg.navigation.timeline} />
             <NavItem id="gallery" icon={ImageIcon} label={msg.navigation.gallery} />
+            <NavItem id="setlist" icon={Music} label={msg.setlist.title} />
+            {isAdmin && (
+              <NavItem id="setlist-admin" icon={Settings} label={msg.setlist.admin} />
+            )}
             
             {/* プロフィールリンク */}
             {user && (
@@ -776,7 +867,7 @@ export default function TimelinePage() {
                 )}
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'gallery' ? (
             /* ギャラリータブ (仮) */
             <div className="grid grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -785,7 +876,133 @@ export default function TimelinePage() {
                 </div>
               ))}
             </div>
-          )}
+          ) : activeTab === 'setlist' ? (
+            /* セットリストタブ */
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Music className="w-6 h-6 text-primary" />
+                {msg.setlist.title}
+              </h2>
+              
+              {setlist.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Music className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>{msg.setlist.noSongs}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {setlist.map((item) => (
+                    <Card key={item.id} className="border-none shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          {/* 曲順 */}
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-lg font-bold text-primary">{item.order_num}</span>
+                          </div>
+                          
+                          {/* 曲情報 */}
+                          <div className="flex-1 min-w-0">
+                            {item.is_public ? (
+                              <>
+                                <div className="text-xs text-primary font-medium mb-1">
+                                  【{item.scene}】
+                                </div>
+                                <div className="font-bold text-foreground truncate">
+                                  {item.title}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {item.artist}
+                                </div>
+                                {item.comment && (
+                                  <div className="text-sm text-gray-500 mt-2 italic">
+                                    "{item.comment}"
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="text-gray-400 italic py-2">
+                                {msg.setlist.comingSoon}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : activeTab === 'setlist-admin' && isAdmin ? (
+            /* セットリスト管理タブ (管理者専用) */
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Settings className="w-6 h-6 text-primary" />
+                {msg.setlist.admin}
+                <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full ml-2">
+                  {msg.setlist.adminOnly}
+                </span>
+              </h2>
+              
+              {setlist.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Music className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>{msg.setlist.noSongs}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {setlist.map((item) => (
+                    <Card key={item.id} className={`border-none shadow-sm ${item.is_public ? 'bg-green-50' : 'bg-gray-50'}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          {/* 曲順 */}
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-lg font-bold text-primary">{item.order_num}</span>
+                          </div>
+                          
+                          {/* 曲情報 */}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-primary font-medium mb-1">
+                              【{item.scene}】
+                            </div>
+                            <div className="font-bold text-foreground truncate">
+                              {item.title}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {item.artist}
+                            </div>
+                            {item.comment && (
+                              <div className="text-sm text-gray-500 mt-2 italic">
+                                "{item.comment}"
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* 公開/非公開ボタン */}
+                          <div className="flex-shrink-0">
+                            <Button
+                              variant={item.is_public ? "outline" : "primary"}
+                              size="sm"
+                              onClick={() => toggleSetlistPublic(item.id, item.is_public)}
+                              className={item.is_public ? 'border-green-500 text-green-600 hover:bg-green-50' : ''}
+                            >
+                              {item.is_public ? (
+                                <>
+                                  <Check className="w-4 h-4 mr-1" />
+                                  {msg.setlist.public}
+                                </>
+                              ) : (
+                                msg.setlist.makePublic
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
 
         </main>
       </div>
