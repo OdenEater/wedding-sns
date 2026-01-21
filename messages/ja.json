@@ -96,5 +96,22 @@
   },
   "gallery": {
     "title": "ギャラリー"
+  },
+  "setlist": {
+    "title": "セットリスト",
+    "comingSoon": "Coming Soon...",
+    "noSongs": "セットリストがまだ登録されていません",
+    "admin": "セットリスト管理",
+    "adminOnly": "管理者専用",
+    "scene": "シーン",
+    "song": "曲",
+    "artist": "アーティスト",
+    "comment": "コメント",
+    "public": "公開",
+    "private": "非公開",
+    "makePublic": "公開する",
+    "makePrivate": "非公開にする",
+    "updateSuccess": "セットリストを更新しました",
+    "updateError": "更新に失敗しました"
   }
 }
