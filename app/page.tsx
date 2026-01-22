@@ -43,6 +43,13 @@ type SetlistItem = {
 // 管理者メールアドレス
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || ''
 
+// プレイリストURL
+const APPLE_MUSIC_URL = process.env.NEXT_PUBLIC_APPLE_MUSIC_URL || ''
+const SPOTIFY_URL = process.env.NEXT_PUBLIC_SPOTIFY_URL || ''
+
+// Google Photo URL
+const GOOGLE_PHOTO_URL = process.env.NEXT_PUBLIC_GOOGLE_PHOTO_URL || ''
+
 export default function TimelinePage() {
   const [activeTab, setActiveTab] = useState<'timeline' | 'gallery' | 'setlist' | 'setlist-admin'>('timeline')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -224,17 +231,8 @@ export default function TimelinePage() {
         .eq('id', id)
 
       if (error) throw error
-
-      setToast({
-        message: msg.setlist.updateSuccess,
-        type: 'success'
-      })
     } catch (error) {
       console.error('セットリスト更新エラー:', error)
-      setToast({
-        message: msg.setlist.updateError,
-        type: 'error'
-      })
     }
   }
 
@@ -492,12 +490,12 @@ export default function TimelinePage() {
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
             <h1 className="text-xl font-bold text-primary flex items-center gap-2">
-              <Heart className="w-6 h-6 fill-primary" />
-              {msg.common.appName}
+              {msg.common.menu}
             </h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="w-5 h-5" />
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center gap-1 text-gray-600">
+            <LogOut className="w-4 h-4" />
+            <span className="text-xs">{msg.navigation.logout}</span>
           </Button>
         </div>
 
@@ -512,13 +510,16 @@ export default function TimelinePage() {
                 <Home className="w-5 h-5" />
                 <span className="font-medium">{msg.navigation.timeline}</span>
               </button>
-              <button 
-                onClick={() => { setActiveTab('gallery'); setIsMenuOpen(false); }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'gallery' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
+              <a 
+                href={GOOGLE_PHOTO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
               >
                 <ImageIcon className="w-5 h-5" />
                 <span className="font-medium">{msg.navigation.gallery}</span>
-              </button>
+              </a>
               <button 
                 onClick={() => { setActiveTab('setlist'); setIsMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'setlist' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
@@ -559,13 +560,21 @@ export default function TimelinePage() {
           <div className="mb-8 px-4">
             <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
               <Heart className="w-8 h-8 fill-primary" />
-              {msg.common.appName}
+              {msg.common.menu}
             </h1>
           </div>
 
           <nav className="flex-1 space-y-2">
             <NavItem id="timeline" icon={Home} label={msg.navigation.timeline} />
-            <NavItem id="gallery" icon={ImageIcon} label={msg.navigation.gallery} />
+            <a
+              href={GOOGLE_PHOTO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-4 px-4 py-3 w-full rounded-full transition-colors text-lg font-medium text-gray-600 hover:bg-secondary"
+            >
+              <ImageIcon className="w-7 h-7" />
+              {msg.navigation.gallery}
+            </a>
             <NavItem id="setlist" icon={Music} label={msg.setlist.title} />
             {isAdmin && (
               <NavItem id="setlist-admin" icon={Settings} label={msg.setlist.admin} />
@@ -931,6 +940,35 @@ export default function TimelinePage() {
                   ))}
                 </div>
               )}
+              
+              {/* 全曲公開時のApple Musicプレイリスト埋め込み */}
+              {setlist.length > 0 && setlist.every(item => item.is_public) && APPLE_MUSIC_URL && (
+                <div className="mt-8">
+                  <iframe
+                    allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+                    frameBorder="0"
+                    height="450"
+                    style={{ width: '100%', maxWidth: '660px', overflow: 'hidden', borderRadius: '10px' }}
+                    sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+                    src={APPLE_MUSIC_URL}
+                  />
+                </div>
+              )}
+              
+              {/* 全曲公開時のSpotifyプレイリスト埋め込み */}
+              {setlist.length > 0 && setlist.every(item => item.is_public) && SPOTIFY_URL && (
+                <div className="mt-8">
+                  <iframe
+                    style={{ borderRadius: '12px', width: '100%', maxWidth: '660px' }}
+                    src={SPOTIFY_URL}
+                    height="352"
+                    frameBorder="0"
+                    allowFullScreen
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"
+                  />
+                </div>
+              )}
             </div>
           ) : activeTab === 'setlist-admin' && isAdmin ? (
             /* セットリスト管理タブ (管理者専用) */
@@ -972,28 +1010,30 @@ export default function TimelinePage() {
                             </div>
                             {item.comment && (
                               <div className="text-sm text-gray-500 mt-2 italic">
-                                "{item.comment}"
+                                {item.comment}
                               </div>
                             )}
                           </div>
                           
-                          {/* 公開/非公開ボタン */}
-                          <div className="flex-shrink-0">
-                            <Button
-                              variant={item.is_public ? "outline" : "primary"}
-                              size="sm"
+                          {/* 公開/非公開トグル */}
+                          <div className="flex-shrink-0 flex items-center gap-2">
+                            <span className={`text-xs font-medium ${item.is_public ? 'text-green-600' : 'text-gray-400'}`}>
+                              {item.is_public ? msg.setlist.public : msg.setlist.private}
+                            </span>
+                            <button
                               onClick={() => toggleSetlistPublic(item.id, item.is_public)}
-                              className={item.is_public ? 'border-green-500 text-green-600 hover:bg-green-50' : ''}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                                item.is_public ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
+                              role="switch"
+                              aria-checked={item.is_public}
                             >
-                              {item.is_public ? (
-                                <>
-                                  <Check className="w-4 h-4 mr-1" />
-                                  {msg.setlist.public}
-                                </>
-                              ) : (
-                                msg.setlist.makePublic
-                              )}
-                            </Button>
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
+                                  item.is_public ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
+                            </button>
                           </div>
                         </div>
                       </CardContent>
@@ -1058,6 +1098,11 @@ export default function TimelinePage() {
           onClose={() => setAvatarModal(null)}
         />
       )}
+
+      {/* フッター */}
+      <footer className="py-6 text-right text-xs text-gray-400 border-t border-border/30 mt-8 pr-4">
+        © 2026 KattaMiyamoto
+      </footer>
     </div>
   )
 }
