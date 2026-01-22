@@ -1047,8 +1047,8 @@ export default function TimelinePage() {
         </main>
       </div>
 
-      {/* フローティング新規投稿ボタン (認証済みユーザーのみ表示) */}
-      {user && (
+      {/* フローティング新規投稿ボタン (認証済みユーザー かつ タイムラインタブのみ表示) */}
+      {user && activeTab === 'timeline' && (
         <Button
           onClick={() => router.push('/post/new')}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50"
