@@ -16,7 +16,8 @@
     "timeline": "タイムライン",
     "gallery": "ギャラリー",
     "profile": "プロフィール",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "login": "ログイン"
   },
   "timeline": {
     "noPosts": "まだ投稿がありません",

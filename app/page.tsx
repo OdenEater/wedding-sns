@@ -9,7 +9,7 @@ import { Toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LikesModal } from '@/components/ui/likes-modal'
 import { AvatarModal } from '@/components/ui/avatar-modal'
-import { Heart, MessageCircle, LogOut, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle, User as UserIcon, Music, Settings } from 'lucide-react'
+import { Heart, MessageCircle, LogOut, LogIn, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle, User as UserIcon, Music, Settings } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
 
@@ -120,7 +120,7 @@ export default function TimelinePage() {
         ...post,
         username: profile?.username,
         avatar_url: profile?.avatar_url,
-        is_liked_by_me: post.is_liked
+        is_liked_by_me: post.is_liked_by_me ?? false
       }
     })
 
@@ -140,6 +140,16 @@ export default function TimelinePage() {
     }
 
     setSetlist(data || [])
+  }
+
+  // タイムライン用の短い時刻表示 (HH:mm)
+  const formatTimeShort = (iso?: string | null) => {
+    if (!iso) return ''
+    try {
+      return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false })
+    } catch (e) {
+      return ''
+    }
   }
 
   useEffect(() => {
@@ -264,7 +274,7 @@ export default function TimelinePage() {
         ...reply,
         username: profile?.username,
         avatar_url: profile?.avatar_url,
-        is_liked_by_me: reply.is_liked
+        is_liked_by_me: reply.is_liked_by_me ?? false
       }
     })
 
@@ -493,10 +503,17 @@ export default function TimelinePage() {
               {msg.common.menu}
             </h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center gap-1 text-gray-600">
-            <LogOut className="w-4 h-4" />
-            <span className="text-xs">{msg.navigation.logout}</span>
-          </Button>
+          {user ? (
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center gap-1 text-gray-600">
+              <LogOut className="w-4 h-4" />
+              <span className="text-xs">{msg.navigation.logout}</span>
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => router.push('/login')} className="flex items-center gap-1 text-gray-600">
+              <LogIn className="w-4 h-4" />
+              <span className="text-xs">{msg.navigation.login}</span>
+            </Button>
+          )}
         </div>
 
         {/* スマホ用メニュー (ドロップダウン) */}
@@ -593,15 +610,27 @@ export default function TimelinePage() {
           </nav>
 
           <div className="px-4 mt-auto">
-            <Button 
-              variant="ghost" 
-              fullWidth 
-              className="justify-start gap-4 text-gray-600 hover:text-red-500 hover:bg-red-50"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-6 h-6" />
-              <span className="text-lg">{msg.navigation.logout}</span>
-            </Button>
+            {user ? (
+              <Button 
+                variant="ghost" 
+                fullWidth 
+                className="justify-start gap-4 text-gray-600 hover:text-red-500 hover:bg-red-50"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-6 h-6" />
+                <span className="text-lg">{msg.navigation.logout}</span>
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                fullWidth 
+                className="justify-start gap-4 text-gray-600 hover:text-primary hover:bg-primary/5"
+                onClick={() => router.push('/login')}
+              >
+                <LogIn className="w-6 h-6" />
+                <span className="text-lg">{msg.navigation.login}</span>
+              </Button>
+            )}
           </div>
         </aside>
 
@@ -637,40 +666,39 @@ export default function TimelinePage() {
                         </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <div className="flex flex-col">
+                            <div className="flex items-center gap-4 min-w-0">
                               <button
                                 onClick={() => router.push(`/profile/${post.user_id}`)}
-                                className="text-sm font-bold text-foreground truncate hover:underline text-left"
+                                className="text-sm font-bold text-foreground truncate hover:underline text-left max-w-[140px]"
+                                style={{ minWidth: 0 }}
                               >
                                 {post.username || msg.common.guest}
                               </button>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400">
-                                {post.created_at ? new Date(post.created_at).toLocaleString('ja-JP') : ''}
+                              <span className="text-xs text-gray-400 flex-shrink-0">
+                                {formatTimeShort(post.created_at)}
                               </span>
-                              {/* 自分の投稿の場合のみ編集・削除ボタン表示 */}
-                              {user && post.user_id === user.id && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-gray-400 hover:text-primary"
-                                    onClick={() => startEditPost(post)}
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-gray-400 hover:text-red-500"
-                                    onClick={() => handleDeletePost(post.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              )}
                             </div>
+                            {/* 自分の投稿の場合のみ編集・削除ボタン表示 */}
+                            {user && post.user_id === user.id && (
+                              <div className="flex gap-1 ml-4">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-gray-400 hover:text-primary"
+                                  onClick={() => startEditPost(post)}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-gray-400 hover:text-red-500"
+                                  onClick={() => handleDeletePost(post.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardHeader>
@@ -780,15 +808,18 @@ export default function TimelinePage() {
                                 </button>
                                 <div className="flex-1 bg-gray-50 rounded-lg p-3">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <button
-                                      onClick={() => router.push(`/profile/${reply.user_id}`)}
-                                      className="text-sm font-bold hover:underline"
-                                    >
-                                      {reply.username || msg.common.guest}
-                                    </button>
-                                    <span className="text-xs text-gray-400">
-                                      {reply.created_at ? new Date(reply.created_at).toLocaleString('ja-JP') : ''}
-                                    </span>
+                                      <div className="flex items-center gap-4 min-w-0">
+                                        <button
+                                          onClick={() => router.push(`/profile/${reply.user_id}`)}
+                                          className="text-sm font-bold truncate hover:underline max-w-[140px]"
+                                          style={{ minWidth: 0 }}
+                                        >
+                                          {reply.username || msg.common.guest}
+                                        </button>
+                                        <span className="text-xs text-gray-400 flex-shrink-0">
+                                          {formatTimeShort(reply.created_at)}
+                                        </span>
+                                      </div>
                                     {/* 自分の返信の場合のみ編集・削除ボタン表示 */}
                                     {user && reply.user_id === user.id && (
                                       <div className="ml-auto flex gap-1">
@@ -1100,7 +1131,7 @@ export default function TimelinePage() {
       )}
 
       {/* フッター */}
-      <footer className="py-6 text-right text-xs text-gray-400 border-t border-border/30 mt-8 pr-4">
+      <footer className="py-6 text-center text-xs text-gray-400 border-t border-border/30 mt-8">
         © 2026 KattaMiyamoto
       </footer>
     </div>

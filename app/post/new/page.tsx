@@ -6,7 +6,7 @@ import { supabase } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Toast } from '@/components/ui/toast'
-import { ArrowLeft, Send, Image as ImageIcon, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Send, MessageCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
 
@@ -232,7 +232,7 @@ function NewPostContent() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-foreground">
+                    <p className="text-sm font-bold text-foreground break-all">
                       {parentPost.username || 'ゲスト'}
                     </p>
                     <span className="text-xs text-gray-400">
@@ -274,11 +274,7 @@ function NewPostContent() {
             </div>
           </CardContent>
           <CardFooter className="bg-secondary/50 flex justify-between items-center py-4 px-6">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" disabled className="text-gray-400">
-                <ImageIcon className="w-5 h-5" />
-              </Button>
-            </div>
+            {/* 画像投稿ボタンは削除（画像はギャラリーからのみ） */}
             <span className={`text-sm ${content.length > 140 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
               {formatMessage(msg.post.characterCount, { current: content.length.toString(), max: '140' })}
             </span>
