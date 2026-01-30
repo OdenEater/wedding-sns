@@ -9,6 +9,7 @@ import { Toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LikesModal } from '@/components/ui/likes-modal'
 import { AvatarModal } from '@/components/ui/avatar-modal'
+import { Spinner } from '@/components/ui/spinner'
 import { Heart, MessageCircle, LogOut, LogIn, Image as ImageIcon, Home, Menu, X, Plus, Trash2, Edit2, Check, XCircle, User as UserIcon, Music, Settings } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { useMessages, formatMessage } from '@/hooks/useMessages'
@@ -512,10 +513,7 @@ export default function TimelinePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
-        <div className="text-center">
-          <Heart className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
-          <p className="text-gray-600">{msg.common.loading}</p>
-        </div>
+        <Spinner size={60} />
       </div>
     )
   }

@@ -375,4 +375,197 @@ describe('TimelinePage Integration Tests', () => {
             expect(screen.getByText('6')).toBeInTheDocument()
         })
     })
+
+    // 投稿機能のテスト
+    describe('Post Functionality', () => {
+        const userId = 'test-user-id'
+        const mockPost = {
+            id: 'post-1',
+            content: '投稿テスト',
+            created_at: new Date().toISOString(),
+            user_id: userId,
+            likes_count: 0,
+            replies_count: 0,
+            is_liked: false
+        }
+        const mockProfile = {
+            id: userId,
+            username: 'テストユーザー',
+            avatar_url: null
+        }
+
+        beforeEach(() => {
+            mockGetUser.mockResolvedValue({
+                data: { user: { id: userId, email: 'test@example.com' } },
+                error: null
+            })
+            mockOnAuthStateChange.mockImplementation((callback: any) => ({
+                data: { subscription: { unsubscribe: jest.fn() } }
+            }))
+            mockChannel.mockReturnValue({
+                on: jest.fn().mockReturnThis(),
+                subscribe: jest.fn()
+            })
+            mockRemoveChannel.mockReturnValue(undefined)
+        })
+
+        test('displays posts with author information', async () => {
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'profiles') {
+                    return createChainMock([mockProfile], { created_at: '2020-01-01', onboarding_completed: true })
+                }
+                if (table === 'posts_with_counts') {
+                    return createChainMock([mockPost])
+                }
+                return createChainMock([])
+            })
+
+            render(<TimelinePage />)
+
+            await waitFor(() => {
+                expect(screen.getByText('投稿テスト')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // 投稿者名が表示される
+            expect(screen.getByText('テストユーザー')).toBeInTheDocument()
+        })
+
+        test('displays multiple posts in chronological order', async () => {
+            const posts = [
+                { ...mockPost, id: 'post-1', content: '最新投稿', created_at: new Date().toISOString() },
+                { ...mockPost, id: 'post-2', content: '古い投稿', created_at: new Date(Date.now() - 86400000).toISOString() },
+            ]
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'profiles') {
+                    return createChainMock([mockProfile], { created_at: '2020-01-01', onboarding_completed: true })
+                }
+                if (table === 'posts_with_counts') {
+                    return createChainMock(posts)
+                }
+                return createChainMock([])
+            })
+
+            render(<TimelinePage />)
+
+            await waitFor(() => {
+                expect(screen.getByText('最新投稿')).toBeInTheDocument()
+                expect(screen.getByText('古い投稿')).toBeInTheDocument()
+            }, { timeout: 3000 })
+        })
+
+        test('shows plus button for creating new post', async () => {
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'profiles') {
+                    return createChainMock([mockProfile], { created_at: '2020-01-01', onboarding_completed: true })
+                }
+                if (table === 'posts_with_counts') {
+                    return createChainMock([mockPost])
+                }
+                return createChainMock([])
+            })
+
+            render(<TimelinePage />)
+
+            await waitFor(() => {
+                expect(screen.getByText('投稿テスト')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // プラスボタンが表示される
+            const plusButtons = screen.getAllByTestId('icon-plus')
+            expect(plusButtons.length).toBeGreaterThan(0)
+        })
+
+        test('shows delete button for own posts', async () => {
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'profiles') {
+                    return createChainMock([mockProfile], { created_at: '2020-01-01', onboarding_completed: true })
+                }
+                if (table === 'posts_with_counts') {
+                    return createChainMock([mockPost])
+                }
+                return createChainMock([])
+            })
+
+            render(<TimelinePage />)
+
+            await waitFor(() => {
+                expect(screen.getByText('投稿テスト')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // 削除ボタンが表示される（自分の投稿）
+            const trashButtons = screen.getAllByTestId('icon-trash-2')
+            expect(trashButtons.length).toBeGreaterThan(0)
+        })
+
+        test('shows edit button for own posts', async () => {
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'profiles') {
+                    return createChainMock([mockProfile], { created_at: '2020-01-01', onboarding_completed: true })
+                }
+                if (table === 'posts_with_counts') {
+                    return createChainMock([mockPost])
+                }
+                return createChainMock([])
+            })
+
+            render(<TimelinePage />)
+
+            await waitFor(() => {
+                expect(screen.getByText('投稿テスト')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // 編集ボタンが表示される
+            const editButtons = screen.getAllByTestId('icon-edit-2')
+            expect(editButtons.length).toBeGreaterThan(0)
+        })
+
+        test('does not show delete button for other users posts', async () => {
+            const otherUserPost = { ...mockPost, user_id: 'other-user-id' }
+            const otherProfile = { id: 'other-user-id', username: '他のユーザー', avatar_url: null }
+
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'profiles') {
+                    return createChainMock([otherProfile], { created_at: '2020-01-01', onboarding_completed: true })
+                }
+                if (table === 'posts_with_counts') {
+                    return createChainMock([otherUserPost])
+                }
+                return createChainMock([])
+            })
+
+            render(<TimelinePage />)
+
+            await waitFor(() => {
+                expect(screen.getByText('投稿テスト')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // 削除ボタンが表示されない（他人の投稿）
+            const trashButtons = screen.queryAllByTestId('icon-trash-2')
+            // メニュー内のゴミ箱アイコンを除外して確認
+            expect(trashButtons.length).toBe(0)
+        })
+
+        test('displays message icon for replies', async () => {
+            const postWithReplies = { ...mockPost, replies_count: 3 }
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'profiles') {
+                    return createChainMock([mockProfile], { created_at: '2020-01-01', onboarding_completed: true })
+                }
+                if (table === 'posts_with_counts') {
+                    return createChainMock([postWithReplies])
+                }
+                return createChainMock([])
+            })
+
+            render(<TimelinePage />)
+
+            await waitFor(() => {
+                expect(screen.getByText('投稿テスト')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // メッセージアイコンが表示される（返信ボタン）
+            const messageIcons = screen.getAllByTestId('icon-message-circle')
+            expect(messageIcons.length).toBeGreaterThan(0)
+        })
+    })
 })
