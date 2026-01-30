@@ -1,0 +1,81 @@
+﻿
+> wedding-sns@0.1.0 test
+> jest --no-coverage
+
+node.exe : [baseline-browser-mapping] The data in
+ this module is over two months old.  To ensure a
+ccurate Baseline data, please update: `npm i base
+line-browser-mapping@latest -D`
+発生場所 行:1 文字:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Progra
+m Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([ba 
+   seline-brows...ping@latest -D`:String) [], R  
+  emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[baseline-browser-mapping] The data in this modul
+e is over two months old.  To ensure accurate Bas
+eline data, please update: `npm i baseline-browse
+r-mapping@latest -D`
+[baseline-browser-mapping] The data in this modul
+e is over two months old.  To ensure accurate Bas
+eline data, please update: `npm i baseline-browse
+r-mapping@latest -D`
+[baseline-browser-mapping] The data in this modul
+e is over two months old.  To ensure accurate Bas
+eline data, please update: `npm i baseline-browse
+r-mapping@latest -D`
+PASS __tests__/hooks/useMessages.test.ts
+PASS __tests__/sanity.test.ts
+PASS __tests__/components/ui/button.test.tsx
+PASS __tests__/integration/home.test.tsx
+  笳・Console
+
+    console.error
+      React does not recognize the `fullWidth` pr
+op on a DOM element. If you intentionally want it
+ to appear in the DOM as a custom attribute, spel
+l it as lowercase `fullwidth` instead. If you acc
+identally passed it from a parent component, remo
+ve it from the DOM element.
+
+      at validateProperty (node_modules/react-dom
+/cjs/react-dom-client.development.js:3001:19)
+      at warnUnknownProperties (node_modules/reac
+t-dom/cjs/react-dom-client.development.js:3146:9)
+      at validatePropertiesInDevelopment (node_mo
+dules/react-dom/cjs/react-dom-client.development.
+js:19868:9)
+      at setInitialProperties (node_modules/react
+-dom/cjs/react-dom-client.development.js:20491:7)
+      at completeWork (node_modules/react-dom/cjs
+/react-dom-client.development.js:12662:18)
+      at runWithFiberInDEV (node_modules/react-do
+m/cjs/react-dom-client.development.js:874:13)
+      at completeUnitOfWork (node_modules/react-d
+om/cjs/react-dom-client.development.js:17777:19)
+      at performUnitOfWork (node_modules/react-do
+m/cjs/react-dom-client.development.js:17658:11)
+      at workLoopSync (node_modules/react-dom/cjs
+/react-dom-client.development.js:17469:41)
+      at renderRootSync (node_modules/react-dom/c
+js/react-dom-client.development.js:17450:11)
+      at performWorkOnRoot (node_modules/react-do
+m/cjs/react-dom-client.development.js:16504:11)
+      at performWorkOnRootViaSchedulerTask (node_
+modules/react-dom/cjs/react-dom-client.developmen
+t.js:18957:7)
+      at performWorkUntilDeadline (node_modules/s
+cheduler/cjs/scheduler.development.js:45:48)
+      at Timeout.task [as _onTimeout] (node_modul
+es/jsdom/lib/jsdom/browser/Window.js:579:19)
+
+
+Test Suites: 4 passed, 4 total
+Tests:       18 passed, 18 total
+Snapshots:   0 total
+Time:        4.142 s
+Ran all test suites.

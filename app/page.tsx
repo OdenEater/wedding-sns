@@ -78,6 +78,25 @@ export default function TimelinePage() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       setLoading(false)
+
+      // 新規ユーザーをオンボーディングへリダイレクト
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('created_at, onboarding_completed')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.created_at && !profile?.onboarding_completed) {
+          const createdAt = new Date(profile.created_at)
+          const now = new Date()
+          const diffSeconds = (now.getTime() - createdAt.getTime()) / 1000
+          if (diffSeconds < 60) {
+            router.push('/onboarding')
+            return
+          }
+        }
+      }
     }
 
     checkUser()
@@ -120,7 +139,7 @@ export default function TimelinePage() {
         ...post,
         username: profile?.username,
         avatar_url: profile?.avatar_url,
-        is_liked_by_me: post.is_liked_by_me ?? false
+        is_liked_by_me: post.is_liked ?? false
       }
     })
 
@@ -274,7 +293,7 @@ export default function TimelinePage() {
         ...reply,
         username: profile?.username,
         avatar_url: profile?.avatar_url,
-        is_liked_by_me: reply.is_liked_by_me ?? false
+        is_liked_by_me: reply.is_liked ?? false
       }
     })
 
@@ -284,7 +303,7 @@ export default function TimelinePage() {
   // 返信の表示/非表示を切り替え
   const toggleReplies = async (postId: string) => {
     const newExpandedPosts = new Set(expandedPosts)
-    
+
     if (expandedPosts.has(postId)) {
       newExpandedPosts.delete(postId)
     } else {
@@ -294,7 +313,7 @@ export default function TimelinePage() {
         await fetchReplies(postId)
       }
     }
-    
+
     setExpandedPosts(newExpandedPosts)
   }
 
@@ -332,25 +351,52 @@ export default function TimelinePage() {
           return {
             ...post,
             is_liked_by_me: !isLiked,
-            likes_count: isLiked 
-              ? (post.likes_count || 0) - 1 
+            likes_count: isLiked
+              ? (post.likes_count || 0) - 1
               : (post.likes_count || 0) + 1
           }
         }
         return post
       }))
 
+      // 返信のいいね状態も更新
+      setReplies(prev => {
+        const newReplies = { ...prev }
+        Object.keys(newReplies).forEach(key => {
+          newReplies[key] = newReplies[key].map(reply => {
+            if (reply.id === postId) {
+              return {
+                ...reply,
+                is_liked_by_me: !isLiked,
+                likes_count: isLiked
+                  ? (reply.likes_count || 0) - 1
+                  : (reply.likes_count || 0) + 1
+              }
+            }
+            return reply
+          })
+        })
+        return newReplies
+      })
+
     } catch (error) {
       console.error('いいねエラー:', error)
       // エラー時は元に戻す
       await fetchPosts()
+      // 返信も再取得（対象が返信だった場合のため）
+      const parentPostId = Object.keys(replies).find(key =>
+        replies[key].some(r => r.id === postId)
+      )
+      if (parentPostId) {
+        await fetchReplies(parentPostId)
+      }
     }
   }
 
   // 投稿削除
   const handleDeletePost = async (postId: string | null) => {
     if (!postId || !user) return
-    
+
     // 確認ダイアログを表示
     setConfirmDelete(postId)
   }
@@ -370,7 +416,7 @@ export default function TimelinePage() {
 
       // 楽観的UI更新
       setPosts(posts.filter(post => post.id !== confirmDelete))
-      
+
       // 返信として削除した場合、返信リストも更新
       setReplies(prev => {
         const newReplies = { ...prev }
@@ -418,7 +464,7 @@ export default function TimelinePage() {
       if (error) throw error
 
       // 楽観的UI更新
-      setPosts(posts.map(post => 
+      setPosts(posts.map(post =>
         post.id === postId ? { ...post, content: editContent.trim() } : post
       ))
 
@@ -426,7 +472,7 @@ export default function TimelinePage() {
       setReplies(prev => {
         const newReplies = { ...prev }
         Object.keys(newReplies).forEach(key => {
-          newReplies[key] = newReplies[key].map(reply => 
+          newReplies[key] = newReplies[key].map(reply =>
             reply.id === postId ? { ...reply, content: editContent.trim() } : reply
           )
         })
@@ -447,11 +493,11 @@ export default function TimelinePage() {
   // いいねボタン長押しハンドラー
   const handleLongPressStart = (postId: string | null, likesCount: number | null) => {
     if (!postId || (likesCount || 0) === 0) return
-    
+
     const timer = setTimeout(() => {
       setLikesModalPostId(postId)
     }, 500) // 500ms長押しでモーダル表示
-    
+
     setLongPressTimer(timer)
   }
 
@@ -479,8 +525,8 @@ export default function TimelinePage() {
     <button
       onClick={() => setActiveTab(id)}
       className={`flex items-center gap-4 px-4 py-3 w-full rounded-full transition-colors text-lg font-medium
-        ${activeTab === id 
-          ? 'text-primary bg-primary/10' 
+        ${activeTab === id
+          ? 'text-primary bg-primary/10'
           : 'text-gray-600 hover:bg-secondary'
         }`}
     >
@@ -491,7 +537,7 @@ export default function TimelinePage() {
 
   return (
     <div className="min-h-screen bg-secondary/30">
-      
+
       {/* スマホ用ヘッダー (md以上で非表示) */}
       <header className="md:hidden sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
         <div className="container px-4 h-16 flex items-center justify-between">
@@ -520,14 +566,14 @@ export default function TimelinePage() {
         {isMenuOpen && (
           <div className="absolute top-16 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-border shadow-lg animate-in slide-in-from-top-2 z-20">
             <nav className="flex flex-col p-4 space-y-2">
-              <button 
+              <button
                 onClick={() => { setActiveTab('timeline'); setIsMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'timeline' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
               >
                 <Home className="w-5 h-5" />
                 <span className="font-medium">{msg.navigation.timeline}</span>
               </button>
-              <a 
+              <a
                 href={GOOGLE_PHOTO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -537,7 +583,7 @@ export default function TimelinePage() {
                 <ImageIcon className="w-5 h-5" />
                 <span className="font-medium">{msg.navigation.gallery}</span>
               </a>
-              <button 
+              <button
                 onClick={() => { setActiveTab('setlist'); setIsMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'setlist' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
               >
@@ -545,7 +591,7 @@ export default function TimelinePage() {
                 <span className="font-medium">{msg.setlist.title}</span>
               </button>
               {isAdmin && (
-                <button 
+                <button
                   onClick={() => { setActiveTab('setlist-admin'); setIsMenuOpen(false); }}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'setlist-admin' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
@@ -554,8 +600,8 @@ export default function TimelinePage() {
                 </button>
               )}
               {user && (
-                <button 
-                  onClick={() => { 
+                <button
+                  onClick={() => {
                     router.push(`/profile/${user.id}`);
                     setIsMenuOpen(false);
                   }}
@@ -571,7 +617,7 @@ export default function TimelinePage() {
       </header>
 
       <div className="container max-w-6xl mx-auto flex gap-8">
-        
+
         {/* PC用サイドバー (md未満で非表示) */}
         <aside className="hidden md:flex flex-col w-64 sticky top-0 h-screen py-8 pl-4 border-r border-border/50">
           <div className="mb-8 px-4">
@@ -596,7 +642,7 @@ export default function TimelinePage() {
             {isAdmin && (
               <NavItem id="setlist-admin" icon={Settings} label={msg.setlist.admin} />
             )}
-            
+
             {/* プロフィールリンク */}
             {user && (
               <button
@@ -611,9 +657,9 @@ export default function TimelinePage() {
 
           <div className="px-4 mt-auto">
             {user ? (
-              <Button 
-                variant="ghost" 
-                fullWidth 
+              <Button
+                variant="ghost"
+                fullWidth
                 className="justify-start gap-4 text-gray-600 hover:text-red-500 hover:bg-red-50"
                 onClick={handleLogout}
               >
@@ -621,9 +667,9 @@ export default function TimelinePage() {
                 <span className="text-lg">{msg.navigation.logout}</span>
               </Button>
             ) : (
-              <Button 
-                variant="ghost" 
-                fullWidth 
+              <Button
+                variant="ghost"
+                fullWidth
                 className="justify-start gap-4 text-gray-600 hover:text-primary hover:bg-primary/5"
                 onClick={() => router.push('/login')}
               >
@@ -636,7 +682,7 @@ export default function TimelinePage() {
 
         {/* メインコンテンツエリア */}
         <main className="flex-1 max-w-2xl py-6 px-4 md:px-0 mx-auto md:mx-0">
-          
+
           {activeTab === 'timeline' ? (
             <div className="space-y-6">
               {/* タイムライン */}
@@ -702,7 +748,7 @@ export default function TimelinePage() {
                           </div>
                         </div>
                       </CardHeader>
-                      
+
                       <CardContent className="pb-2 pl-[4.5rem]">
                         {editingPostId === post.id ? (
                           <div className="space-y-2">
@@ -739,7 +785,7 @@ export default function TimelinePage() {
                             </div>
                           </div>
                         ) : (
-                          <p 
+                          <p
                             className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90 cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded transition-colors"
                             onClick={() => router.push(`/post/${post.id}`)}
                           >
@@ -750,8 +796,8 @@ export default function TimelinePage() {
 
                       <CardFooter className="pl-[4.5rem] pt-2 pb-4 flex flex-col gap-4">
                         <div className="flex gap-6">
-                          <button 
-                            className={`flex items-center gap-1.5 text-sm transition-colors ${post.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`} 
+                          <button
+                            className={`flex items-center gap-1.5 text-sm transition-colors ${post.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}
                             onClick={() => handleLike(post.id, post.is_liked_by_me)}
                             onTouchStart={() => handleLongPressStart(post.id, post.likes_count)}
                             onTouchEnd={handleLongPressEnd}
@@ -762,9 +808,9 @@ export default function TimelinePage() {
                             <Heart className={`w-5 h-5 ${post.is_liked_by_me ? 'fill-pink-500' : ''}`} />
                             <span>{post.likes_count || 0}</span>
                           </button>
-                          
+
                           {user && (
-                            <button 
+                            <button
                               className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors"
                               onClick={() => router.push(`/post/new?replyTo=${post.id}`)}
                             >
@@ -774,13 +820,13 @@ export default function TimelinePage() {
                           )}
 
                           {(post.replies_count ?? 0) > 0 && (
-                            <button 
+                            <button
                               className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors"
                               onClick={() => post.id && toggleReplies(post.id)}
                             >
                               <span className="text-xs">
-                                {expandedPosts.has(post.id || '') 
-                                  ? msg.timeline.hideReplies 
+                                {expandedPosts.has(post.id || '')
+                                  ? msg.timeline.hideReplies
                                   : formatMessage(msg.timeline.showReplies, { count: (post.replies_count ?? 0).toString() })}
                               </span>
                             </button>
@@ -808,18 +854,18 @@ export default function TimelinePage() {
                                 </button>
                                 <div className="flex-1 bg-gray-50 rounded-lg p-3">
                                   <div className="flex items-center gap-2 mb-1">
-                                      <div className="flex items-center gap-4 min-w-0">
-                                        <button
-                                          onClick={() => router.push(`/profile/${reply.user_id}`)}
-                                          className="text-sm font-bold truncate hover:underline max-w-[140px]"
-                                          style={{ minWidth: 0 }}
-                                        >
-                                          {reply.username || msg.common.guest}
-                                        </button>
-                                        <span className="text-xs text-gray-400 flex-shrink-0">
-                                          {formatTimeShort(reply.created_at)}
-                                        </span>
-                                      </div>
+                                    <div className="flex items-center gap-4 min-w-0">
+                                      <button
+                                        onClick={() => router.push(`/profile/${reply.user_id}`)}
+                                        className="text-sm font-bold truncate hover:underline max-w-[140px]"
+                                        style={{ minWidth: 0 }}
+                                      >
+                                        {reply.username || msg.common.guest}
+                                      </button>
+                                      <span className="text-xs text-gray-400 flex-shrink-0">
+                                        {formatTimeShort(reply.created_at)}
+                                      </span>
+                                    </div>
                                     {/* 自分の返信の場合のみ編集・削除ボタン表示 */}
                                     {user && reply.user_id === user.id && (
                                       <div className="ml-auto flex gap-1">
@@ -883,7 +929,7 @@ export default function TimelinePage() {
                                     </p>
                                   )}
                                   <div className="flex gap-4 mt-2">
-                                    <button 
+                                    <button
                                       className={`flex items-center gap-1 text-xs transition-colors ${reply.is_liked_by_me ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}
                                       onClick={() => handleLike(reply.id, reply.is_liked_by_me)}
                                       onTouchStart={() => handleLongPressStart(reply.id, reply.likes_count)}
@@ -923,7 +969,7 @@ export default function TimelinePage() {
                 <Music className="w-6 h-6 text-primary" />
                 {msg.setlist.title}
               </h2>
-              
+
               {setlist.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Music className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -939,7 +985,7 @@ export default function TimelinePage() {
                           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-lg font-bold text-primary">{item.order_num}</span>
                           </div>
-                          
+
                           {/* 曲情報 */}
                           <div className="flex-1 min-w-0">
                             {item.is_public ? (
@@ -971,7 +1017,7 @@ export default function TimelinePage() {
                   ))}
                 </div>
               )}
-              
+
               {/* 全曲公開時のApple Musicプレイリスト埋め込み */}
               {setlist.length > 0 && setlist.every(item => item.is_public) && APPLE_MUSIC_URL && (
                 <div className="mt-8">
@@ -985,7 +1031,7 @@ export default function TimelinePage() {
                   />
                 </div>
               )}
-              
+
               {/* 全曲公開時のSpotifyプレイリスト埋め込み */}
               {setlist.length > 0 && setlist.every(item => item.is_public) && SPOTIFY_URL && (
                 <div className="mt-8">
@@ -1011,7 +1057,7 @@ export default function TimelinePage() {
                   {msg.setlist.adminOnly}
                 </span>
               </h2>
-              
+
               {setlist.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Music className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -1027,7 +1073,7 @@ export default function TimelinePage() {
                           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-lg font-bold text-primary">{item.order_num}</span>
                           </div>
-                          
+
                           {/* 曲情報 */}
                           <div className="flex-1 min-w-0">
                             <div className="text-xs text-primary font-medium mb-1">
@@ -1045,7 +1091,7 @@ export default function TimelinePage() {
                               </div>
                             )}
                           </div>
-                          
+
                           {/* 公開/非公開トグル */}
                           <div className="flex-shrink-0 flex items-center gap-2">
                             <span className={`text-xs font-medium ${item.is_public ? 'text-green-600' : 'text-gray-400'}`}>
@@ -1053,16 +1099,14 @@ export default function TimelinePage() {
                             </span>
                             <button
                               onClick={() => toggleSetlistPublic(item.id, item.is_public)}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                                item.is_public ? 'bg-green-500' : 'bg-gray-300'
-                              }`}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${item.is_public ? 'bg-green-500' : 'bg-gray-300'
+                                }`}
                               role="switch"
                               aria-checked={item.is_public}
                             >
                               <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${
-                                  item.is_public ? 'translate-x-6' : 'translate-x-1'
-                                }`}
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${item.is_public ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
                               />
                             </button>
                           </div>
@@ -1091,8 +1135,8 @@ export default function TimelinePage() {
 
       {/* Toast通知 */}
       {toast && (
-        <Toast 
-          message={toast.message} 
+        <Toast
+          message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
         />

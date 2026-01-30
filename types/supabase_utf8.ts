@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -92,25 +92,19 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          created_at: string
           id: string
-          onboarding_completed: boolean | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
-          created_at?: string
           id: string
-          onboarding_completed?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
-          created_at?: string
           id?: string
-          onboarding_completed?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
@@ -118,36 +112,36 @@ export type Database = {
       }
       setlist: {
         Row: {
-          artist: string
-          comment: string | null
-          created_at: string
           id: string
-          is_public: boolean
           order_num: number
-          scene: string
           title: string
+          artist: string
+          scene: string
+          comment: string | null
+          is_public: boolean
+          created_at: string
           updated_at: string
         }
         Insert: {
-          artist: string
-          comment?: string | null
-          created_at?: string
           id?: string
-          is_public?: boolean
           order_num: number
-          scene: string
           title: string
+          artist: string
+          scene: string
+          comment?: string | null
+          is_public?: boolean
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          artist?: string
-          comment?: string | null
-          created_at?: string
           id?: string
-          is_public?: boolean
           order_num?: number
-          scene?: string
           title?: string
+          artist?: string
+          scene?: string
+          comment?: string | null
+          is_public?: boolean
+          created_at?: string
           updated_at?: string
         }
         Relationships: []

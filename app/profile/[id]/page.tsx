@@ -17,6 +17,7 @@ type Profile = {
   username: string | null
   avatar_url: string | null
   updated_at: string | null
+  onboarding_completed: boolean | null
 }
 
 type Post = {
@@ -33,7 +34,7 @@ export default function ProfilePage() {
   const userId = params.id as string
   const router = useRouter()
   const msg = useMessages()
-  
+
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
@@ -133,7 +134,7 @@ export default function ProfilePage() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           username: editUsername.trim(),
           avatar_url: editAvatarUrl
         })
@@ -142,8 +143,8 @@ export default function ProfilePage() {
       if (error) throw error
 
       // ローカル状態を更新
-      setProfile(prev => prev ? { 
-        ...prev, 
+      setProfile(prev => prev ? {
+        ...prev,
         username: editUsername.trim(),
         avatar_url: editAvatarUrl
       } : null)
@@ -185,9 +186,9 @@ export default function ProfilePage() {
       {/* ヘッダー */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
         <div className="container max-w-2xl mx-auto px-4 h-16 flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => router.push('/')}
             className="-ml-2"
           >
@@ -297,7 +298,7 @@ export default function ProfilePage() {
         {/* 投稿一覧 */}
         <div className="space-y-4">
           <h3 className="text-lg font-bold px-2">{msg.profile.posts}</h3>
-          
+
           {posts.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <p>{msg.profile.noPosts}</p>
@@ -317,25 +318,25 @@ export default function ProfilePage() {
                       </p>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pb-4">
                     <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground/90 mb-3">
                       {post.content}
                     </p>
-                  
-                  <div className="flex gap-6 text-sm text-gray-500">
-                    <div className="flex items-center gap-1.5">
-                      <Heart className="w-4 h-4" />
-                      <span>{post.likes_count}</span>
+
+                    <div className="flex gap-6 text-sm text-gray-500">
+                      <div className="flex items-center gap-1.5">
+                        <Heart className="w-4 h-4" />
+                        <span>{post.likes_count}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{post.replies_count}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <MessageCircle className="w-4 h-4" />
-                      <span>{post.replies_count}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </button>
+                  </CardContent>
+                </Card>
+              </button>
             ))
           )}
         </div>
@@ -343,8 +344,8 @@ export default function ProfilePage() {
 
       {/* Toast通知 */}
       {toast && (
-        <Toast 
-          message={toast.message} 
+        <Toast
+          message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
         />
