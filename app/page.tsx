@@ -41,8 +41,12 @@ type SetlistItem = {
   updated_at: string
 }
 
-// 管理者メールアドレス
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || ''
+// 管理者メールアドレス（3人まで）
+const ADMIN_EMAILS = [
+  process.env.NEXT_PUBLIC_ADMIN_ADDRESS,
+  process.env.NEXT_PUBLIC_ADMIN_ADDRESS2,
+  process.env.NEXT_PUBLIC_ADMIN_ADDRESS3,
+].filter(Boolean) as string[]
 
 // プレイリストURL
 const APPLE_MUSIC_URL = process.env.NEXT_PUBLIC_APPLE_MUSIC_URL || ''
@@ -71,7 +75,7 @@ export default function TimelinePage() {
   const msg = useMessages()
 
   // 管理者かどうかをチェック
-  const isAdmin = user?.email === ADMIN_EMAIL
+  const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false
 
   // 認証状態の確認
   useEffect(() => {
